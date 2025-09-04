@@ -31,7 +31,7 @@ mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
   <h1>📊 Inventory Viewer (BOQ Only)</h1>
   <div class="card">
     <div class="controls">
-      <label id="upload-label" class="btn">Upload File(s)
+      <label id="upload-label" class="btn">Upload New File
         <input id="file-input" type="file" accept=".xlsx,.xls" multiple/>
       </label>
       <button id="clear-cache" class="btn" style="display:none;background:linear-gradient(90deg,#f87171,#ef4444)">Clear Cache</button>
@@ -77,7 +77,7 @@ window.addEventListener("load",()=>{
       if(!('_balance' in r)) r._balance = Number(r[headers[10]]||0);
     });
     showUniqueList();
-    uploadLabel.style.display='none';
+    uploadLabel.style.display='block';
     clearCache.style.display='block';
   }
 });
@@ -92,7 +92,7 @@ fileInput.addEventListener('change', async ev => {
     if(!json.length) continue;
     if(!headers.length) headers = json[0];
 
-    // Remove old data from same file
+    // Remove old data from same file name
     rawData = rawData.filter(r => r._sourceFile !== f.name);
 
     const rows = json.slice(1).map(r=>{
@@ -105,7 +105,7 @@ fileInput.addEventListener('change', async ev => {
   }
   saveData();
   showUniqueList();
-  uploadLabel.style.display='none'; 
+  uploadLabel.style.display='block'; 
   clearCache.style.display='block';
 });
 
@@ -152,7 +152,6 @@ function filterByBOQ(boq){
 function renderTable(rows, q='', reset=true){
   const thead=dataTable.querySelector('thead'), tbody=dataTable.querySelector('tbody');
   if(reset){
-    // Hide columns L M N O
     const visibleHeaders = headers.filter((h,i)=>i<11);
     thead.innerHTML='<tr>'+visibleHeaders.map(h=>`<th>${h}</th>`).join('')+'<th>Balance</th><th>Total MRN Qty</th></tr>';
     tbody.innerHTML=''; renderedCount=0;
@@ -174,7 +173,6 @@ function renderTable(rows, q='', reset=true){
   });
   renderedCount += chunk.length;
   rowsCount.textContent=`${rows.length} rows (showing ${renderedCount})`;
-
   tableScroll.onscroll = () => {
     if(tableScroll.scrollTop + tableScroll.clientHeight >= tableScroll.scrollHeight-20){
       if(renderedCount < rows.length) renderTable(rows, q, false);
@@ -182,13 +180,13 @@ function renderTable(rows, q='', reset=true){
   };
 }
 
+// MRN modal
 createMRNBtn.addEventListener('click',()=>{
   const boq = searchBox.value.trim();
   if(!boq){ alert('Search a BOQ first!'); return; }
   const items = rawData.filter(r=>r[headers[0]]===boq);
   if(!items.length) return;
 
-  // Modal
   const modal = document.createElement('div');
   Object.assign(modal.style,{position:'fixed',top:0,left:0,width:'100%',height:'100%',background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999});
   const content = document.createElement('div');
@@ -199,22 +197,17 @@ createMRNBtn.addEventListener('click',()=>{
   const thead = document.createElement('thead'); thead.innerHTML='<tr><th>Select</th><th>Item</th><th>BOQ Qty</th><th>Required Qty</th><th>Balance</th></tr>';
   table.appendChild(thead);
   const tbody = document.createElement('tbody');
-
   items.forEach((r,i)=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input type="checkbox" class="mrn-select"></td>
+    tr.innerHTML = `<td><input type="checkbox" class="mrn-select"></td>
       <td>${r[headers[7]]}</td>
       <td class="boq-qty">${r._balance}</td>
       <td><input type="number" class="req-qty" value="0" style="width:60px"/></td>
-      <td class="balance">${r._balance}</td>
-    `;
+      <td class="balance">${r._balance}</td>`;
     tbody.appendChild(tr);
   });
-  table.appendChild(tbody);
-  content.appendChild(table);
+  table.appendChild(tbody); content.appendChild(table);
 
-  // Select All + Generate
   const selectAllBtn = document.createElement('button'); selectAllBtn.textContent='Select All'; Object.assign(selectAllBtn.style,{marginTop:'10px',padding:'8px'});
   selectAllBtn.addEventListener('click',()=>{
     tbody.querySelectorAll('tr').forEach(tr=>{
@@ -238,18 +231,16 @@ createMRNBtn.addEventListener('click',()=>{
           'Item Description': items[i][headers[7]],
           'Required Qty': reqQty
         });
-        // Update balance
         items[i]._balance -= reqQty;
         items[i]._totalMRN = (items[i]._totalMRN||0) + reqQty;
       }
     });
     if(!mrnData.length){ alert('No items selected'); return; }
-
-    // Generate Excel
     const ws = XLSX.utils.json_to_sheet(mrnData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'MRN');
     XLSX.writeFile(wb, 'MRN.xlsx');
+    saveData();
     renderTable(items, searchBox.value, true);
     alert('MRN generated and balances updated!');
   });
