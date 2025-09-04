@@ -34,7 +34,6 @@ mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
       <label id="upload-label" class="btn">Upload File(s)
         <input id="file-input" type="file" accept=".xlsx,.xls" multiple/>
       </label>
-      <button id="upload-again" class="btn" style="display:none">Upload Again</button>
       <button id="clear-cache" class="btn" style="display:none;background:linear-gradient(90deg,#f87171,#ef4444)">Clear Cache</button>
       <div class="search">
         <input id="search-box" placeholder="🔍 Search BOQ No..."/>
@@ -55,7 +54,6 @@ mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
 let rawData=[], headers=[], renderedCount=0;
 const fileInput=document.getElementById('file-input');
 const uploadLabel=document.getElementById('upload-label');
-const uploadAgain=document.getElementById('upload-again');
 const clearCache=document.getElementById('clear-cache');
 const searchBox=document.getElementById('search-box');
 const createMRNBtn=document.getElementById('create-mrn');
@@ -79,7 +77,8 @@ window.addEventListener("load",()=>{
       if(!('_balance' in r)) r._balance = Number(r[headers[10]]||0);
     });
     showUniqueList();
-    uploadLabel.style.display='none'; uploadAgain.style.display='block'; clearCache.style.display='block';
+    uploadLabel.style.display='none';
+    clearCache.style.display='block';
   }
 });
 
@@ -93,6 +92,7 @@ fileInput.addEventListener('change', async ev => {
     if(!json.length) continue;
     if(!headers.length) headers = json[0];
 
+    // Remove old data from same file
     rawData = rawData.filter(r => r._sourceFile !== f.name);
 
     const rows = json.slice(1).map(r=>{
@@ -105,19 +105,17 @@ fileInput.addEventListener('change', async ev => {
   }
   saveData();
   showUniqueList();
-  uploadLabel.style.display='none'; uploadAgain.style.display='block'; clearCache.style.display='block';
+  uploadLabel.style.display='none'; 
+  clearCache.style.display='block';
 });
 
-uploadAgain.addEventListener('click',()=>{
-  fileInput.value=''; rawData=[]; headers=[];
-  dataTable.querySelector('thead').innerHTML=''; dataTable.querySelector('tbody').innerHTML='';
-  uniqueContainer.innerHTML='';
-  localStorage.removeItem("invData"); localStorage.removeItem("invHeaders");
-  uploadLabel.style.display='block'; uploadAgain.style.display='none'; clearCache.style.display='none';
-  rowsCount.textContent='0 rows';
+clearCache.addEventListener('click',()=>{ 
+  if(confirm("Clear saved data?")){
+    rawData=[]; headers=[]; dataTable.querySelector('thead').innerHTML=''; dataTable.querySelector('tbody').innerHTML='';
+    uniqueContainer.innerHTML=''; localStorage.removeItem("invData"); localStorage.removeItem("invHeaders");
+    uploadLabel.style.display='block'; rowsCount.textContent='0 rows'; clearCache.style.display='none';
+  }
 });
-
-clearCache.addEventListener('click',()=>{ if(confirm("Clear saved data?")) uploadAgain.click(); });
 
 searchBox.addEventListener('input', debounce(() => {
   const q = searchBox.value.trim().toLowerCase();
@@ -153,18 +151,25 @@ function filterByBOQ(boq){
 
 function renderTable(rows, q='', reset=true){
   const thead=dataTable.querySelector('thead'), tbody=dataTable.querySelector('tbody');
-  if(reset){ thead.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'<th>Balance</th></tr>'; tbody.innerHTML=''; renderedCount=0; }
+  if(reset){
+    // Hide columns L M N O
+    const visibleHeaders = headers.filter((h,i)=>i<11);
+    thead.innerHTML='<tr>'+visibleHeaders.map(h=>`<th>${h}</th>`).join('')+'<th>Balance</th><th>Total MRN Qty</th></tr>';
+    tbody.innerHTML=''; renderedCount=0;
+  }
   const chunk = rows.slice(renderedCount, renderedCount+100);
   chunk.forEach(r=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = headers.map((h,i)=>{
+    let totalMRN = r._totalMRN||0;
+    const tds = headers.filter((h,i)=>i<11).map((h,i)=>{
       let val = String(r[h]||'');
       if(q && i===0){
         const re = new RegExp(`(${q})`,'gi');
         val = val.replace(re,'<mark>$1</mark>');
       }
       return `<td>${val}</td>`;
-    }).join('') + `<td class="${r._balance===0?'zero-balance':''}">${r._balance}</td>`;
+    }).join('');
+    tr.innerHTML = tds + `<td class="${r._balance===0?'zero-balance':''}">${r._balance}</td><td>${totalMRN}</td>`;
     tbody.appendChild(tr);
   });
   renderedCount += chunk.length;
@@ -178,94 +183,84 @@ function renderTable(rows, q='', reset=true){
 }
 
 createMRNBtn.addEventListener('click',()=>{
-  const boqNo = searchBox.value.trim();
-  if(!boqNo) return alert("Please select/search a BOQ No first.");
+  const boq = searchBox.value.trim();
+  if(!boq){ alert('Search a BOQ first!'); return; }
+  const items = rawData.filter(r=>r[headers[0]]===boq);
+  if(!items.length) return;
 
-  const items = rawData.filter(r=>r[headers[0]]===boqNo);
-  if(!items.length) return alert("No items for this BOQ.");
-
+  // Modal
   const modal = document.createElement('div');
-  Object.assign(modal.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',background:'rgba(0,0,0,0.5)',display:'flex',justifyContent:'center',alignItems:'center',zIndex:9999});
-  
-  const content=document.createElement('div');
-  Object.assign(content.style,{background:'#0b1220',padding:'15px',borderRadius:'10px',maxHeight:'80%',overflowY:'auto',width:'90%'});
-  
-  const table = document.createElement('table');
-  table.style.width='100%';
-  const thead = document.createElement('thead');
-  thead.innerHTML='<tr><th><input type="checkbox" id="select-all"></th><th>Item ID</th><th>Description</th><th>BOQ Qty</th><th>Required Qty</th><th>Balance</th></tr>';
+  Object.assign(modal.style,{position:'fixed',top:0,left:0,width:'100%',height:'100%',background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999});
+  const content = document.createElement('div');
+  Object.assign(content.style,{background:'#fff',padding:'20px',borderRadius:'10px',maxHeight:'80%',overflow:'auto',width:'90%',maxWidth:'600px',color:'#000'});
+  const title = document.createElement('h2'); title.textContent='Create MRN — ' + boq; content.appendChild(title);
+
+  const table = document.createElement('table'); table.style.width='100%';
+  const thead = document.createElement('thead'); thead.innerHTML='<tr><th>Select</th><th>Item</th><th>BOQ Qty</th><th>Required Qty</th><th>Balance</th></tr>';
   table.appendChild(thead);
-  
   const tbody = document.createElement('tbody');
-  items.forEach(r=>{
+
+  items.forEach((r,i)=>{
     const tr = document.createElement('tr');
-    const boqQty = r._balance;
-    tr.innerHTML=`
-      <td><input type="checkbox" class="select-item"></td>
-      <td>${r[headers[6]]}</td>
+    tr.innerHTML = `
+      <td><input type="checkbox" class="mrn-select"></td>
       <td>${r[headers[7]]}</td>
-      <td class="boq-qty">${boqQty}</td>
-      <td><input type="number" class="req-qty" value="0" min="0" max="${boqQty}" style="width:60px"></td>
-      <td class="balance">${boqQty}</td>
+      <td class="boq-qty">${r._balance}</td>
+      <td><input type="number" class="req-qty" value="0" style="width:60px"/></td>
+      <td class="balance">${r._balance}</td>
     `;
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
   content.appendChild(table);
 
-  const generateBtn = document.createElement('button');
-  generateBtn.textContent='Generate MRN Excel';
-  Object.assign(generateBtn.style,{marginTop:'10px',padding:'8px',cursor:'pointer'});
-  
-  generateBtn.addEventListener('click',()=>{
-    const selectedRows = Array.from(tbody.querySelectorAll('tr')).filter(tr=>tr.querySelector('.select-item').checked);
-    if(!selectedRows.length) return alert("Select at least one item.");
-    
-    const mrnData=[['Item ID','Description','Required Qty']];
-    selectedRows.forEach(tr=>{
-      const id=tr.children[1].textContent;
-      const desc=tr.children[2].textContent;
-      const reqQty=Number(tr.querySelector('.req-qty').value);
-      mrnData.push([id,desc,reqQty]);
-      const item = rawData.find(r => r[headers[6]]===id && r[headers[0]]===boqNo);
-      if(item){
-        item._balance -= reqQty;
-        if(item._balance <0) item._balance=0;
-      }
-      const boqQty=Number(tr.querySelector('.boq-qty').textContent);
-      tr.querySelector('.balance').textContent=boqQty-reqQty;
-    });
-
-    renderTable(rawData.filter(r=>r[headers[0]]===boqNo), boqNo, true);
-
-    const ws=XLSX.utils.aoa_to_sheet(mrnData);
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'MRN');
-    XLSX.writeFile(wb,'MRN.xlsx');
-    saveData();
-  });
-
-  content.querySelector('#select-all').addEventListener('change',e=>{
-    const checked=e.target.checked;
-    tbody.querySelectorAll('.select-item').forEach(cb=>{
-      cb.checked=checked;
-      const tr=cb.closest('tr');
+  // Select All + Generate
+  const selectAllBtn = document.createElement('button'); selectAllBtn.textContent='Select All'; Object.assign(selectAllBtn.style,{marginTop:'10px',padding:'8px'});
+  selectAllBtn.addEventListener('click',()=>{
+    tbody.querySelectorAll('tr').forEach(tr=>{
+      tr.querySelector('.mrn-select').checked=true;
       const maxQty=Number(tr.querySelector('.boq-qty').textContent);
-      tr.querySelector('.req-qty').value=checked? maxQty:0;
-      tr.querySelector('.balance').textContent=checked?0:maxQty;
+      tr.querySelector('.req-qty').value=maxQty;
+      tr.querySelector('.balance').textContent=0;
     });
   });
+  content.appendChild(selectAllBtn);
 
+  const generateBtn = document.createElement('button'); generateBtn.textContent='Generate MRN'; Object.assign(generateBtn.style,{marginTop:'10px',marginLeft:'10px',padding:'8px',background:'#06b6d4',color:'#fff'});
+  generateBtn.addEventListener('click',()=>{
+    const mrnData = [];
+    tbody.querySelectorAll('tr').forEach((tr,i)=>{
+      const checked = tr.querySelector('.mrn-select').checked;
+      const reqQty = Number(tr.querySelector('.req-qty').value)||0;
+      if(checked && reqQty>0){
+        mrnData.push({
+          'BOQ No': items[i][headers[0]],
+          'Item Description': items[i][headers[7]],
+          'Required Qty': reqQty
+        });
+        // Update balance
+        items[i]._balance -= reqQty;
+        items[i]._totalMRN = (items[i]._totalMRN||0) + reqQty;
+      }
+    });
+    if(!mrnData.length){ alert('No items selected'); return; }
+
+    // Generate Excel
+    const ws = XLSX.utils.json_to_sheet(mrnData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'MRN');
+    XLSX.writeFile(wb, 'MRN.xlsx');
+    renderTable(items, searchBox.value, true);
+    alert('MRN generated and balances updated!');
+  });
   content.appendChild(generateBtn);
 
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent='Close';
+  const closeBtn = document.createElement('button'); closeBtn.textContent='Close';
   Object.assign(closeBtn.style,{marginTop:'10px',marginLeft:'10px',padding:'8px',cursor:'pointer',background:'#f87171',color:'#fff'});
   closeBtn.addEventListener('click',()=> modal.remove());
   content.appendChild(closeBtn);
 
-  modal.appendChild(content);
-  document.body.appendChild(modal);
+  modal.appendChild(content); document.body.appendChild(modal);
 });
 
 function debounce(fn,delay=200){let t; return(...args)=>{clearTimeout(t); t=setTimeout(()=>fn(...args),delay);};}
