@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Inventory Viewer</title>
+<title>Inventory Viewer - BOQ Only</title>
 <style>
 :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.08)}
 html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;color:#e6eef6;font-size:13px;background:linear-gradient(180deg,#021124 0%,#071326 100%);}
@@ -27,16 +27,16 @@ mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
 </head>
 <body>
 <div class="wrap">
-  <h1>📊 Inventory Viewer</h1>
+  <h1>📊 Inventory Viewer (BOQ Only)</h1>
   <div class="card">
     <div class="controls">
-      <label id="upload-label" class="btn">Upload File
+      <label id="upload-label" class="btn">Upload File(s)
         <input id="file-input" type="file" accept=".xlsx,.xls" multiple/>
       </label>
       <button id="upload-again" class="btn" style="display:none">Upload Again</button>
       <button id="clear-cache" class="btn" style="display:none;background:linear-gradient(90deg,#f87171,#ef4444)">Clear Cache</button>
       <div class="search">
-        <input id="search-box" placeholder="🔍 Search BOQ No, Asset, Item..."/>
+        <input id="search-box" placeholder="🔍 Search BOQ No..."/>
       </div>
     </div>
     <div class="table-wrap card" style="margin-top:10px;">
@@ -61,6 +61,7 @@ const dataTable=document.getElementById('data-table');
 const uniqueContainer=document.getElementById('unique-container');
 const tableScroll=document.getElementById('table-scroll');
 
+// Save rawData and headers to localStorage
 function saveData(){
   localStorage.setItem("invData",JSON.stringify(rawData));
   localStorage.setItem("invHeaders",JSON.stringify(headers));
@@ -78,34 +79,33 @@ window.addEventListener("load",()=>{
   }
 });
 
-// Handle uploads
-fileInput.addEventListener('change',async ev=>{
-  const files=Array.from(ev.target.files);
-  for(const f of files){
-    const buffer=await f.arrayBuffer();
-    const wb=XLSX.read(buffer,{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    const json=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+// Upload multiple files
+fileInput.addEventListener('change', async ev => {
+  const files = Array.from(ev.target.files);
+  for (const f of files) {
+    const buffer = await f.arrayBuffer();
+    const wb = XLSX.read(buffer,{type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     if(!json.length) continue;
-    if(!headers.length) headers=json[0];
+    if(!headers.length) headers = json[0];
 
-    // Remove old data from same file if exists
-    const fileName=f.name;
-    rawData=rawData.filter(r=>r._sourceFile!==fileName);
+    // Remove old data from same file
+    rawData = rawData.filter(r => r._sourceFile !== f.name);
 
-    // Map rows with _sourceFile
-    const rows=json.slice(1).map(r=>{
+    const rows = json.slice(1).map(r=>{
       const obj=Object.fromEntries(headers.map((h,i)=>[h,r[i]]));
-      obj._sourceFile=fileName;
+      obj._sourceFile = f.name;
       return obj;
     });
-    rawData=rawData.concat(rows);
+    rawData = rawData.concat(rows);
   }
   saveData();
   showUniqueList();
   uploadLabel.style.display='none'; uploadAgain.style.display='block'; clearCache.style.display='block';
 });
 
+// Upload Again
 uploadAgain.addEventListener('click',()=>{
   fileInput.value=''; rawData=[]; headers=[];
   dataTable.querySelector('thead').innerHTML=''; dataTable.querySelector('tbody').innerHTML='';
@@ -115,32 +115,31 @@ uploadAgain.addEventListener('click',()=>{
   rowsCount.textContent='0 rows';
 });
 
+// Clear Cache
 clearCache.addEventListener('click',()=>{
-  if(confirm("Clear saved data?")){
-    uploadAgain.click();
-  }
+  if(confirm("Clear saved data?")) uploadAgain.click();
 });
 
-// Debounced search
-searchBox.addEventListener('input',debounce(()=>{
-  const q=searchBox.value.trim().toLowerCase();
-  if(!q){ showUniqueList(); return; }
-  const filterCols=[0,3,4,5,6,8,9,10];
-  const results=rawData.filter(r=>filterCols.some(idx=>String(r[headers[idx]]||'').toLowerCase().includes(q)));
-  renderTable(results,q,true);
-},200));
+// Debounced search: only BOQ No
+searchBox.addEventListener('input', debounce(() => {
+  const q = searchBox.value.trim().toLowerCase();
+  if (!q) { showUniqueList(); return; }
+  const results = rawData.filter(r => String(r[headers[0]] || '').toLowerCase().includes(q));
+  renderTable(results, q, true);
+}, 200));
 
+// Show unique BOQ No
 function showUniqueList(){
-  const uniqueMap=new Map();
-  rawData.forEach(r=>{
-    const key=r[headers[0]]+'|'+r[headers[3]]; // BOQ No | Asset/Service
-    if(!uniqueMap.has(key)) uniqueMap.set(key,r);
+  const uniqueMap = new Map();
+  rawData.forEach(r => {
+    const key = r[headers[0]]; // Only BOQ No
+    if(!uniqueMap.has(key)) uniqueMap.set(key, r);
   });
   uniqueContainer.innerHTML='';
   uniqueMap.forEach(r=>{
     const div=document.createElement('div');
     div.className='unique-item';
-    div.textContent=`${r[headers[0]]} — ${r[headers[3]]}`;
+    div.textContent = r[headers[0]];
     div.addEventListener('click',()=>{ filterByBOQ(r[headers[0]]); });
     uniqueContainer.appendChild(div);
   });
@@ -149,42 +148,41 @@ function showUniqueList(){
   rowsCount.textContent=`${uniqueMap.size} unique BOQ`;
 }
 
+// Filter table by BOQ No (on click)
 function filterByBOQ(boq){
   searchBox.value=boq;
-  const results=rawData.filter(r=>r[headers[0]]===boq);
-  renderTable(results,boq,true);
+  const results = rawData.filter(r => r[headers[0]] === boq);
+  renderTable(results, boq, true);
 }
 
-function renderTable(rows,q='',reset=true){
+// Render table with infinite scroll
+function renderTable(rows, q='', reset=true){
   const thead=dataTable.querySelector('thead'), tbody=dataTable.querySelector('tbody');
   if(reset){ thead.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>'; tbody.innerHTML=''; renderedCount=0; }
-  const chunk=rows.slice(renderedCount,renderedCount+100);
+  const chunk = rows.slice(renderedCount, renderedCount+100);
   chunk.forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=headers.map((h,i)=>{
-      let val=String(r[h]||'');
-      if(q && [0,3,4,5,6,8,9,10].includes(i)){
-        const re=new RegExp(`(${q})`,'gi');
-        val=val.replace(re,'<mark>$1</mark>');
+    const tr = document.createElement('tr');
+    tr.innerHTML = headers.map((h,i)=>{
+      let val = String(r[h]||'');
+      if(q && i===0){
+        const re = new RegExp(`(${q})`,'gi');
+        val = val.replace(re,'<mark>$1</mark>');
       }
       return `<td>${val}</td>`;
     }).join('');
     tbody.appendChild(tr);
   });
-  renderedCount+=chunk.length;
+  renderedCount += chunk.length;
   rowsCount.textContent=`${rows.length} rows (showing ${renderedCount})`;
 
-  // Infinite scroll
-  tableScroll.onscroll=()=>{
+  tableScroll.onscroll = () => {
     if(tableScroll.scrollTop + tableScroll.clientHeight >= tableScroll.scrollHeight-20){
-      if(renderedCount<rows.length){
-        renderTable(rows,q,false);
-      }
+      if(renderedCount < rows.length) renderTable(rows, q, false);
     }
   };
 }
 
-function debounce(fn,delay=200){let t; return(...args)=>{clearTimeout(t); t=setTimeout(()=>fn(...args),delay);};}
+function debounce(fn, delay=200){let t; return(...args)=>{clearTimeout(t); t=setTimeout(()=>fn(...args),delay);};}
 </script>
 </body>
 </html>
