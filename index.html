@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Inventory Viewer - BOQ Only</title>
+<title>Inventory Viewer with MRN</title>
 <style>
 :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.08)}
 html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;color:#e6eef6;font-size:13px;background:linear-gradient(180deg,#021124 0%,#071326 100%);}
@@ -22,6 +22,7 @@ th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--car
 mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
 .unique-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .unique-item{background:rgba(6,182,212,0.2);padding:6px 10px;border-radius:6px;cursor:pointer;user-select:none;}
+.zero-balance{color:red;font-weight:600;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -38,6 +39,7 @@ mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
       <div class="search">
         <input id="search-box" placeholder="🔍 Search BOQ No..."/>
       </div>
+      <button id="create-mrn" class="btn" style="margin-top:10px">Create MRN</button>
     </div>
     <div class="table-wrap card" style="margin-top:10px;">
       <span class="tag" id="rows-count">0 rows</span>
@@ -56,30 +58,31 @@ const uploadLabel=document.getElementById('upload-label');
 const uploadAgain=document.getElementById('upload-again');
 const clearCache=document.getElementById('clear-cache');
 const searchBox=document.getElementById('search-box');
+const createMRNBtn=document.getElementById('create-mrn');
 const rowsCount=document.getElementById('rows-count');
 const dataTable=document.getElementById('data-table');
 const uniqueContainer=document.getElementById('unique-container');
 const tableScroll=document.getElementById('table-scroll');
 
-// Save rawData and headers to localStorage
 function saveData(){
   localStorage.setItem("invData",JSON.stringify(rawData));
   localStorage.setItem("invHeaders",JSON.stringify(headers));
 }
 
-// Restore saved data
 window.addEventListener("load",()=>{
   const savedData=localStorage.getItem("invData");
   const savedHeaders=localStorage.getItem("invHeaders");
   if(savedData && savedHeaders){
     rawData=JSON.parse(savedData);
     headers=JSON.parse(savedHeaders);
+    rawData.forEach(r=>{
+      if(!('_balance' in r)) r._balance = Number(r[headers[10]]||0);
+    });
     showUniqueList();
     uploadLabel.style.display='none'; uploadAgain.style.display='block'; clearCache.style.display='block';
   }
 });
 
-// Upload multiple files
 fileInput.addEventListener('change', async ev => {
   const files = Array.from(ev.target.files);
   for (const f of files) {
@@ -90,12 +93,12 @@ fileInput.addEventListener('change', async ev => {
     if(!json.length) continue;
     if(!headers.length) headers = json[0];
 
-    // Remove old data from same file
     rawData = rawData.filter(r => r._sourceFile !== f.name);
 
     const rows = json.slice(1).map(r=>{
       const obj=Object.fromEntries(headers.map((h,i)=>[h,r[i]]));
       obj._sourceFile = f.name;
+      obj._balance = Number(obj[headers[10]]||0);
       return obj;
     });
     rawData = rawData.concat(rows);
@@ -105,7 +108,6 @@ fileInput.addEventListener('change', async ev => {
   uploadLabel.style.display='none'; uploadAgain.style.display='block'; clearCache.style.display='block';
 });
 
-// Upload Again
 uploadAgain.addEventListener('click',()=>{
   fileInput.value=''; rawData=[]; headers=[];
   dataTable.querySelector('thead').innerHTML=''; dataTable.querySelector('tbody').innerHTML='';
@@ -115,12 +117,8 @@ uploadAgain.addEventListener('click',()=>{
   rowsCount.textContent='0 rows';
 });
 
-// Clear Cache
-clearCache.addEventListener('click',()=>{
-  if(confirm("Clear saved data?")) uploadAgain.click();
-});
+clearCache.addEventListener('click',()=>{ if(confirm("Clear saved data?")) uploadAgain.click(); });
 
-// Debounced search: only BOQ No
 searchBox.addEventListener('input', debounce(() => {
   const q = searchBox.value.trim().toLowerCase();
   if (!q) { showUniqueList(); return; }
@@ -128,18 +126,17 @@ searchBox.addEventListener('input', debounce(() => {
   renderTable(results, q, true);
 }, 200));
 
-// Show unique BOQ No
 function showUniqueList(){
   const uniqueMap = new Map();
   rawData.forEach(r => {
-    const key = r[headers[0]]; // Only BOQ No
+    const key = r[headers[0]];
     if(!uniqueMap.has(key)) uniqueMap.set(key, r);
   });
   uniqueContainer.innerHTML='';
   uniqueMap.forEach(r=>{
     const div=document.createElement('div');
     div.className='unique-item';
-    div.textContent = r[headers[0]];
+    div.textContent = r[headers[0]] + ' — ' + r[headers[3]];
     div.addEventListener('click',()=>{ filterByBOQ(r[headers[0]]); });
     uniqueContainer.appendChild(div);
   });
@@ -148,17 +145,15 @@ function showUniqueList(){
   rowsCount.textContent=`${uniqueMap.size} unique BOQ`;
 }
 
-// Filter table by BOQ No (on click)
 function filterByBOQ(boq){
   searchBox.value=boq;
   const results = rawData.filter(r => r[headers[0]] === boq);
   renderTable(results, boq, true);
 }
 
-// Render table with infinite scroll
 function renderTable(rows, q='', reset=true){
   const thead=dataTable.querySelector('thead'), tbody=dataTable.querySelector('tbody');
-  if(reset){ thead.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>'; tbody.innerHTML=''; renderedCount=0; }
+  if(reset){ thead.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'<th>Balance</th></tr>'; tbody.innerHTML=''; renderedCount=0; }
   const chunk = rows.slice(renderedCount, renderedCount+100);
   chunk.forEach(r=>{
     const tr = document.createElement('tr');
@@ -169,7 +164,7 @@ function renderTable(rows, q='', reset=true){
         val = val.replace(re,'<mark>$1</mark>');
       }
       return `<td>${val}</td>`;
-    }).join('');
+    }).join('') + `<td class="${r._balance===0?'zero-balance':''}">${r._balance}</td>`;
     tbody.appendChild(tr);
   });
   renderedCount += chunk.length;
@@ -182,7 +177,98 @@ function renderTable(rows, q='', reset=true){
   };
 }
 
-function debounce(fn, delay=200){let t; return(...args)=>{clearTimeout(t); t=setTimeout(()=>fn(...args),delay);};}
+createMRNBtn.addEventListener('click',()=>{
+  const boqNo = searchBox.value.trim();
+  if(!boqNo) return alert("Please select/search a BOQ No first.");
+
+  const items = rawData.filter(r=>r[headers[0]]===boqNo);
+  if(!items.length) return alert("No items for this BOQ.");
+
+  const modal = document.createElement('div');
+  Object.assign(modal.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',background:'rgba(0,0,0,0.5)',display:'flex',justifyContent:'center',alignItems:'center',zIndex:9999});
+  
+  const content=document.createElement('div');
+  Object.assign(content.style,{background:'#0b1220',padding:'15px',borderRadius:'10px',maxHeight:'80%',overflowY:'auto',width:'90%'});
+  
+  const table = document.createElement('table');
+  table.style.width='100%';
+  const thead = document.createElement('thead');
+  thead.innerHTML='<tr><th><input type="checkbox" id="select-all"></th><th>Item ID</th><th>Description</th><th>BOQ Qty</th><th>Required Qty</th><th>Balance</th></tr>';
+  table.appendChild(thead);
+  
+  const tbody = document.createElement('tbody');
+  items.forEach(r=>{
+    const tr = document.createElement('tr');
+    const boqQty = r._balance;
+    tr.innerHTML=`
+      <td><input type="checkbox" class="select-item"></td>
+      <td>${r[headers[6]]}</td>
+      <td>${r[headers[7]]}</td>
+      <td class="boq-qty">${boqQty}</td>
+      <td><input type="number" class="req-qty" value="0" min="0" max="${boqQty}" style="width:60px"></td>
+      <td class="balance">${boqQty}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  content.appendChild(table);
+
+  const generateBtn = document.createElement('button');
+  generateBtn.textContent='Generate MRN Excel';
+  Object.assign(generateBtn.style,{marginTop:'10px',padding:'8px',cursor:'pointer'});
+  
+  generateBtn.addEventListener('click',()=>{
+    const selectedRows = Array.from(tbody.querySelectorAll('tr')).filter(tr=>tr.querySelector('.select-item').checked);
+    if(!selectedRows.length) return alert("Select at least one item.");
+    
+    const mrnData=[['Item ID','Description','Required Qty']];
+    selectedRows.forEach(tr=>{
+      const id=tr.children[1].textContent;
+      const desc=tr.children[2].textContent;
+      const reqQty=Number(tr.querySelector('.req-qty').value);
+      mrnData.push([id,desc,reqQty]);
+      const item = rawData.find(r => r[headers[6]]===id && r[headers[0]]===boqNo);
+      if(item){
+        item._balance -= reqQty;
+        if(item._balance <0) item._balance=0;
+      }
+      const boqQty=Number(tr.querySelector('.boq-qty').textContent);
+      tr.querySelector('.balance').textContent=boqQty-reqQty;
+    });
+
+    renderTable(rawData.filter(r=>r[headers[0]]===boqNo), boqNo, true);
+
+    const ws=XLSX.utils.aoa_to_sheet(mrnData);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'MRN');
+    XLSX.writeFile(wb,'MRN.xlsx');
+    saveData();
+  });
+
+  content.querySelector('#select-all').addEventListener('change',e=>{
+    const checked=e.target.checked;
+    tbody.querySelectorAll('.select-item').forEach(cb=>{
+      cb.checked=checked;
+      const tr=cb.closest('tr');
+      const maxQty=Number(tr.querySelector('.boq-qty').textContent);
+      tr.querySelector('.req-qty').value=checked? maxQty:0;
+      tr.querySelector('.balance').textContent=checked?0:maxQty;
+    });
+  });
+
+  content.appendChild(generateBtn);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent='Close';
+  Object.assign(closeBtn.style,{marginTop:'10px',marginLeft:'10px',padding:'8px',cursor:'pointer',background:'#f87171',color:'#fff'});
+  closeBtn.addEventListener('click',()=> modal.remove());
+  content.appendChild(closeBtn);
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+});
+
+function debounce(fn,delay=200){let t; return(...args)=>{clearTimeout(t); t=setTimeout(()=>fn(...args),delay);};}
 </script>
 </body>
 </html>
