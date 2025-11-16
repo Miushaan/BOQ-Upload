@@ -3,154 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Salary Calculator (Mobile)</title>
+<title>Salary Calculator</title>
 <style>
-    body {
-        font-family: 'Segoe UI', sans-serif;
-        background: #f0f2f5;
-        margin: 0;
-        padding: 0;
-    }
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 390px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 20px;
+    box-sizing: border-box;
+    min-height: 100vh;
+    position: relative;
+}
+h2 {
+    text-align: center;
+    color: #333;
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+label {
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+}
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0 12px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+table, th, td {
+    border: 1px solid #ddd;
+}
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+th {
+    background-color: #007bff;
+    color: white;
+    font-size: 14px;
+}
+.result {
+    margin-top: 10px;
+    font-size: 26px;
+    font-weight: bold;
+    color: #2a9d8f;
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    background-color: #e6f7f1;
+}
+.recommend {
+    margin-top: 15px;
+    font-size: 16px;
+    color: #e07a5f;
+    text-align: center;
+    white-space: pre-line;
+}
+.delete-btn {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.delete-btn:hover {
+    background-color: #cc0000;
+}
+.nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+}
+.nav-buttons button {
+    width: 32%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+}
+#backBtn { background-color: #6c757d; }
+#nextBtn { background-color: #007bff; }
+#homeBtn { background-color: #28a745; }
+#backBtn:hover { background-color: #5a6268; }
+#nextBtn:hover { background-color: #0056b3; }
+#homeBtn:hover { background-color: #218838; }
 
-    .container {
-        max-width: 390px; /* fits iPhone 12 Pro width */
-        margin: 0 auto;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        padding: 20px;
-        box-sizing: border-box;
-    }
-
-    h2 {
-        text-align: center;
-        color: #333;
-        font-size: 22px;
-        margin-bottom: 15px;
-    }
-
-    label {
-        font-weight: bold;
-        display: block;
-        margin-top: 10px;
-        font-size: 14px;
-    }
-
-    input, button {
-        width: 100%;
-        padding: 10px;
-        margin: 6px 0 12px 0;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        font-size: 16px;
-        box-sizing: border-box;
-    }
-
-    button {
-        background-color: #007bff;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-        border: none;
-    }
-
-    button:hover {
-        background-color: #0056b3;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
-        font-size: 14px;
-    }
-
-    table, th, td {
-        border: 1px solid #ddd;
-    }
-
-    th, td {
-        padding: 8px;
-        text-align: center;
-    }
-
-    th {
-        background-color: #007bff;
-        color: white;
-        font-size: 14px;
-    }
-
-    .result {
-        margin-top: 15px;
-        font-size: 18px;
-        font-weight: bold;
-        color: #2a9d8f;
-        text-align: center;
-        padding: 10px;
-        border-radius: 8px;
-        background-color: #e6f7f1;
-    }
-
-    .delete-btn {
-        background-color: #ff4d4d;
-        color: white;
-        border: none;
-        padding: 5px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-
-    .delete-btn:hover {
-        background-color: #cc0000;
-    }
-
-    @media (max-width: 400px) {
-        h2 { font-size: 20px; }
-        input, button { font-size: 15px; }
-        th, td { font-size: 12px; }
-        .result { font-size: 16px; }
-    }
+.page { display: none; padding-bottom: 70px; }
+.page.active { display: block; }
 </style>
 </head>
 <body>
-
 <div class="container">
-    <h2>Salary Calculator</h2>
 
-    <label>Date</label>
-    <input type="date" id="otDate">
+    <!-- Page 1: OT Entry -->
+    <div class="page active" id="page1">
+        <h2>Enter OT</h2>
+        <div class="result" id="totalSalaryFirstPage">Total Salary: 0.00 MVR</div>
+        <label>Date</label>
+        <input type="date" id="otDate">
+        <label>Normal OT Hours</label>
+        <input type="number" id="normalOT" placeholder="Normal OT hours">
+        <label>Double OT Hours</label>
+        <input type="number" id="doubleOT" placeholder="Double OT hours">
+        <button onclick="addEntry()">Add/Update OT Entry</button>
 
-    <label>Normal OT Hours</label>
-    <input type="number" id="normalOT" placeholder="Normal OT hours">
+        <table id="otTable">
+            <thead>
+                <tr><th>Date</th><th>Normal OT</th><th>Double OT</th><th>Action</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
-    <label>Double OT Hours</label>
-    <input type="number" id="doubleOT" placeholder="Double OT hours">
+    <!-- Page 2: Extra & Present Days -->
+    <div class="page" id="page2">
+        <h2>Other Inputs</h2>
+        <label>Number of Weeks (6th-day bonus)</label>
+        <input type="number" id="weeks" placeholder="Weeks">
+        <label>Extra Days</label>
+        <input type="number" id="extraDays" placeholder="Extra days">
+        <label>Present Days</label>
+        <input type="number" id="presentDays" placeholder="Present days">
+    </div>
 
-    <label>Number of Weeks (6th-day bonus)</label>
-    <input type="number" id="weeks" placeholder="Weeks">
+    <!-- Page 3: Summary & OT Recommendation -->
+    <div class="page" id="page3">
+        <h2>Salary Summary</h2>
+        <div class="result" id="totalSalaryLastPage">Total Salary: 0.00 MVR</div>
+        <div class="recommend" id="recommendOTLastPage"></div>
+    </div>
 
-    <label>Extra Days</label>
-    <input type="number" id="extraDays" placeholder="Extra days">
+</div>
 
-    <label>Present Days</label>
-    <input type="number" id="presentDays" placeholder="Present days">
-
-    <button onclick="addEntry()">Add/Update OT Entry</button>
-
-    <table id="otTable">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Normal OT</th>
-                <th>Double OT</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <div class="result" id="totalSalary">Total Salary: 0.00 MVR</div>
+<!-- Navigation Buttons -->
+<div class="nav-buttons">
+    <button id="backBtn" onclick="prevPage()">Back</button>
+    <button id="homeBtn" onclick="goHome()">Home</button>
+    <button id="nextBtn" onclick="nextPage()">Next</button>
 </div>
 
 <script>
@@ -161,61 +178,102 @@ const SIXTH_DAY_BONUS = 374.63;
 const EXTRA_DAY_RATE = 166.5;
 const PRESENT_DAY_RATE = 75;
 const PENSION = 699.30;
+const TARGET_SALARY = 25000;
 
 let otEntries = {};
+let currentPage = 1;
 
-function addEntry() {
+function saveData() {
+    localStorage.setItem("otEntries", JSON.stringify(otEntries));
+    localStorage.setItem("weeks", document.getElementById("weeks").value);
+    localStorage.setItem("extraDays", document.getElementById("extraDays").value);
+    localStorage.setItem("presentDays", document.getElementById("presentDays").value);
+}
+
+window.onload = function() {
+    const storedEntries = localStorage.getItem("otEntries");
+    if(storedEntries) otEntries = JSON.parse(storedEntries);
+    ["weeks","extraDays","presentDays"].forEach(id=>{
+        const val = localStorage.getItem(id);
+        if(val) document.getElementById(id).value = val;
+    });
+    renderTable();
+    calculateTotal();
+    updateNavButtons();
+};
+
+function addEntry(){
     const date = document.getElementById("otDate").value;
-    const normalOT = parseFloat(document.getElementById("normalOT").value) || 0;
-    const doubleOT = parseFloat(document.getElementById("doubleOT").value) || 0;
-
-    if (!date) { alert("Please select a date"); return; }
-
-    otEntries[date] = { normalOT, doubleOT };
+    const normal = parseFloat(document.getElementById("normalOT").value)||0;
+    const dbl = parseFloat(document.getElementById("doubleOT").value)||0;
+    if(!date){ alert("Select date"); return;}
+    otEntries[date]={normalOT:normal,doubleOT:dbl};
+    saveData();
     renderTable();
     calculateTotal();
 }
 
-function renderTable() {
+function renderTable(){
     const tbody = document.querySelector("#otTable tbody");
-    tbody.innerHTML = "";
-
-    Object.keys(otEntries).sort().forEach(date => {
-        const entry = otEntries[date];
+    tbody.innerHTML="";
+    Object.keys(otEntries).sort().forEach(date=>{
+        const e = otEntries[date];
         const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${date}</td>
-            <td>${entry.normalOT}</td>
-            <td>${entry.doubleOT}</td>
-            <td><button class="delete-btn" onclick="deleteEntry('${date}')">Delete</button></td>
-        `;
+        row.innerHTML=`<td>${date}</td><td>${e.normalOT}</td><td>${e.doubleOT}</td><td><button class="delete-btn" onclick="deleteEntry('${date}')">Delete</button></td>`;
         tbody.appendChild(row);
     });
 }
 
-function deleteEntry(date) {
-    delete otEntries[date];
-    renderTable();
-    calculateTotal();
-}
+function deleteEntry(date){ delete otEntries[date]; saveData(); renderTable(); calculateTotal(); }
 
-function calculateTotal() {
-    const weeks = parseFloat(document.getElementById("weeks").value) || 0;
-    const extraDays = parseFloat(document.getElementById("extraDays").value) || 0;
-    const presentDays = parseFloat(document.getElementById("presentDays").value) || 0;
+function calculateTotal(){
+    const weeks = parseFloat(document.getElementById("weeks").value)||0;
+    const extraDays = parseFloat(document.getElementById("extraDays").value)||0;
+    const presentDays = parseFloat(document.getElementById("presentDays").value)||0;
 
-    let totalOT = 0;
-    for (const key in otEntries) {
-        const entry = otEntries[key];
-        totalOT += entry.normalOT * NORMAL_OT_RATE;
-        totalOT += entry.doubleOT * DOUBLE_OT_RATE;
+    let totalOT=0;
+    for(const key in otEntries){ const e=otEntries[key]; totalOT+=e.normalOT*NORMAL_OT_RATE+e.doubleOT*DOUBLE_OT_RATE;}
+    let total = BASIC_SALARY+totalOT+(weeks*SIXTH_DAY_BONUS)+(extraDays*EXTRA_DAY_RATE)+(presentDays*PRESENT_DAY_RATE)-PENSION;
+
+    document.getElementById("totalSalaryFirstPage").innerText="Total Salary: "+total.toFixed(2)+" MVR";
+    document.getElementById("totalSalaryLastPage").innerText="Total Salary: "+total.toFixed(2)+" MVR";
+
+    // Salary month 21->20
+    const today=new Date();
+    let start=new Date(today.getFullYear(),today.getMonth(),21);
+    if(today.getDate()<21) start.setMonth(start.getMonth()-1);
+    let end=new Date(start.getFullYear(),start.getMonth()+1,20);
+    let pendingDays=Math.max(Math.ceil((end-today)/(1000*60*60*24)),1);
+
+    let remaining = TARGET_SALARY-total;
+    let recommendText="";
+    if(remaining<=0) recommendText="You have already reached MVR "+TARGET_SALARY;
+    else{
+        const normalOT_needed=remaining/NORMAL_OT_RATE;
+        const otPerDay=normalOT_needed/pendingDays;
+        recommendText="Days left: "+pendingDays+
+            "\nTotal OT needed: "+normalOT_needed.toFixed(2)+" hours"+
+            "\nOT per day to reach MVR "+TARGET_SALARY+": "+otPerDay.toFixed(2)+" hours/day";
     }
-
-    let total = BASIC_SALARY + totalOT + (weeks * SIXTH_DAY_BONUS) + (extraDays * EXTRA_DAY_RATE) + (presentDays * PRESENT_DAY_RATE) - PENSION;
-
-    document.getElementById("totalSalary").innerText = "Total Salary: " + total.toFixed(2) + " MVR";
+    document.getElementById("recommendOTLastPage").innerText=recommendText;
 }
-</script>
 
+function showPage(n){
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.getElementById("page"+n).classList.add("active");
+    currentPage=n;
+    updateNavButtons();
+}
+
+function updateNavButtons(){
+    document.getElementById("backBtn").style.display=(currentPage===1)?"none":"inline-block";
+    document.getElementById("nextBtn").style.display=(currentPage===3)?"none":"inline-block";
+    document.getElementById("homeBtn").style.display=(currentPage===3)?"inline-block":"none";
+}
+
+function nextPage(){ if(currentPage<3){showPage(currentPage+1); calculateTotal();}}
+function prevPage(){ if(currentPage>1) showPage(currentPage-1);}
+function goHome(){ showPage(1);}
+</script>
 </body>
 </html>
