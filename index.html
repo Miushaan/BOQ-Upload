@@ -2,259 +2,220 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Inventory Viewer with MRN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Salary Calculator (Mobile)</title>
 <style>
-:root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.08)}
-html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;color:#e6eef6;font-size:13px;background:linear-gradient(180deg,#021124 0%,#071326 100%);}
-.wrap{max-width:100%;margin:0 auto;padding:10px}
-h1{text-align:center;font-size:1rem;margin:0 0 8px}
-.card{background:var(--card);border-radius:10px;padding:10px;box-shadow:0 3px 12px rgba(0,0,0,0.5);}
-.controls{display:flex;flex-direction:column;gap:8px}
-.btn{background:linear-gradient(90deg,var(--accent),#7dd3fc);border:none;padding:8px;border-radius:8px;color:#021124;font-weight:600;cursor:pointer;font-size:0.9rem;text-align:center}
-input[type="file"]{display:none}
-.search{position:relative}
-.search input{width:100%;padding:12px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:var(--glass);color:inherit;font-size:1rem;}
-.table-wrap{margin-top:10px}
-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:0.8rem}
-th,td{padding:6px 5px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05);word-wrap:break-word;white-space:normal;}
-th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--card);z-index:1}
-mark{background:rgba(6,182,212,0.3);color:#fff;border-radius:2px;padding:0 1px}
-.unique-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
-.unique-item{background:rgba(6,182,212,0.2);padding:6px 10px;border-radius:6px;cursor:pointer;user-select:none;}
-.zero-balance{color:red;font-weight:600;}
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f0f2f5;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        max-width: 390px; /* fits iPhone 12 Pro width */
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    h2 {
+        text-align: center;
+        color: #333;
+        font-size: 22px;
+        margin-bottom: 15px;
+    }
+
+    label {
+        font-weight: bold;
+        display: block;
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
+    input, button {
+        width: 100%;
+        padding: 10px;
+        margin: 6px 0 12px 0;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+
+    button {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+
+    table, th, td {
+        border: 1px solid #ddd;
+    }
+
+    th, td {
+        padding: 8px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #007bff;
+        color: white;
+        font-size: 14px;
+    }
+
+    .result {
+        margin-top: 15px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #2a9d8f;
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        background-color: #e6f7f1;
+    }
+
+    .delete-btn {
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+        padding: 5px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .delete-btn:hover {
+        background-color: #cc0000;
+    }
+
+    @media (max-width: 400px) {
+        h2 { font-size: 20px; }
+        input, button { font-size: 15px; }
+        th, td { font-size: 12px; }
+        .result { font-size: 16px; }
+    }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<div class="wrap">
-  <h1>📊 Inventory Viewer (BOQ Only)</h1>
-  <div class="card">
-    <div class="controls">
-      <label id="upload-label" class="btn">Upload New File
-        <input id="file-input" type="file" accept=".xlsx,.xls" multiple/>
-      </label>
-      <button id="clear-cache" class="btn" style="display:none;background:linear-gradient(90deg,#f87171,#ef4444)">Clear Cache</button>
-      <div class="search">
-        <input id="search-box" placeholder="🔍 Search BOQ No..."/>
-      </div>
-      <button id="create-mrn" class="btn" style="margin-top:10px">Create MRN</button>
-    </div>
-    <div class="table-wrap card" style="margin-top:10px;">
-      <span class="tag" id="rows-count">0 rows</span>
-      <div id="unique-container" class="unique-list"></div>
-      <div id="table-scroll" style="max-height:500px;margin-top:6px;overflow:auto;">
-        <table id="data-table"><thead></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </div>
+
+<div class="container">
+    <h2>Salary Calculator</h2>
+
+    <label>Date</label>
+    <input type="date" id="otDate">
+
+    <label>Normal OT Hours</label>
+    <input type="number" id="normalOT" placeholder="Normal OT hours">
+
+    <label>Double OT Hours</label>
+    <input type="number" id="doubleOT" placeholder="Double OT hours">
+
+    <label>Number of Weeks (6th-day bonus)</label>
+    <input type="number" id="weeks" placeholder="Weeks">
+
+    <label>Extra Days</label>
+    <input type="number" id="extraDays" placeholder="Extra days">
+
+    <label>Present Days</label>
+    <input type="number" id="presentDays" placeholder="Present days">
+
+    <button onclick="addEntry()">Add/Update OT Entry</button>
+
+    <table id="otTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Normal OT</th>
+                <th>Double OT</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="result" id="totalSalary">Total Salary: 0.00 MVR</div>
 </div>
 
 <script>
-let rawData=[], headers=[], renderedCount=0;
-const fileInput=document.getElementById('file-input');
-const uploadLabel=document.getElementById('upload-label');
-const clearCache=document.getElementById('clear-cache');
-const searchBox=document.getElementById('search-box');
-const createMRNBtn=document.getElementById('create-mrn');
-const rowsCount=document.getElementById('rows-count');
-const dataTable=document.getElementById('data-table');
-const uniqueContainer=document.getElementById('unique-container');
-const tableScroll=document.getElementById('table-scroll');
+const NORMAL_OT_RATE = 52.03;
+const DOUBLE_OT_RATE = 62.44;
+const BASIC_SALARY = 15290;
+const SIXTH_DAY_BONUS = 374.63;
+const EXTRA_DAY_RATE = 166.5;
+const PRESENT_DAY_RATE = 75;
+const PENSION = 699.30;
 
-function saveData(){
-  localStorage.setItem("invData",JSON.stringify(rawData));
-  localStorage.setItem("invHeaders",JSON.stringify(headers));
+let otEntries = {};
+
+function addEntry() {
+    const date = document.getElementById("otDate").value;
+    const normalOT = parseFloat(document.getElementById("normalOT").value) || 0;
+    const doubleOT = parseFloat(document.getElementById("doubleOT").value) || 0;
+
+    if (!date) { alert("Please select a date"); return; }
+
+    otEntries[date] = { normalOT, doubleOT };
+    renderTable();
+    calculateTotal();
 }
 
-window.addEventListener("load",()=>{
-  const savedData=localStorage.getItem("invData");
-  const savedHeaders=localStorage.getItem("invHeaders");
-  if(savedData && savedHeaders){
-    rawData=JSON.parse(savedData);
-    headers=JSON.parse(savedHeaders);
-    rawData.forEach(r=>{
-      if(!('_balance' in r)) r._balance = Number(r[headers[10]]||0);
+function renderTable() {
+    const tbody = document.querySelector("#otTable tbody");
+    tbody.innerHTML = "";
+
+    Object.keys(otEntries).sort().forEach(date => {
+        const entry = otEntries[date];
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${date}</td>
+            <td>${entry.normalOT}</td>
+            <td>${entry.doubleOT}</td>
+            <td><button class="delete-btn" onclick="deleteEntry('${date}')">Delete</button></td>
+        `;
+        tbody.appendChild(row);
     });
-    showUniqueList();
-    uploadLabel.style.display='block';
-    clearCache.style.display='block';
-  }
-});
-
-fileInput.addEventListener('change', async ev => {
-  const files = Array.from(ev.target.files);
-  for (const f of files) {
-    const buffer = await f.arrayBuffer();
-    const wb = XLSX.read(buffer,{type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-    if(!json.length) continue;
-    if(!headers.length) headers = json[0];
-
-    // Remove old data from same file name
-    rawData = rawData.filter(r => r._sourceFile !== f.name);
-
-    const rows = json.slice(1).map(r=>{
-      const obj=Object.fromEntries(headers.map((h,i)=>[h,r[i]]));
-      obj._sourceFile = f.name;
-      obj._balance = Number(obj[headers[10]]||0);
-      return obj;
-    });
-    rawData = rawData.concat(rows);
-  }
-  saveData();
-  showUniqueList();
-  uploadLabel.style.display='block'; 
-  clearCache.style.display='block';
-});
-
-clearCache.addEventListener('click',()=>{ 
-  if(confirm("Clear saved data?")){
-    rawData=[]; headers=[]; dataTable.querySelector('thead').innerHTML=''; dataTable.querySelector('tbody').innerHTML='';
-    uniqueContainer.innerHTML=''; localStorage.removeItem("invData"); localStorage.removeItem("invHeaders");
-    uploadLabel.style.display='block'; rowsCount.textContent='0 rows'; clearCache.style.display='none';
-  }
-});
-
-searchBox.addEventListener('input', debounce(() => {
-  const q = searchBox.value.trim().toLowerCase();
-  if (!q) { showUniqueList(); return; }
-  const results = rawData.filter(r => String(r[headers[0]] || '').toLowerCase().includes(q));
-  renderTable(results, q, true);
-}, 200));
-
-function showUniqueList(){
-  const uniqueMap = new Map();
-  rawData.forEach(r => {
-    const key = r[headers[0]];
-    if(!uniqueMap.has(key)) uniqueMap.set(key, r);
-  });
-  uniqueContainer.innerHTML='';
-  uniqueMap.forEach(r=>{
-    const div=document.createElement('div');
-    div.className='unique-item';
-    div.textContent = r[headers[0]] + ' — ' + r[headers[3]];
-    div.addEventListener('click',()=>{ filterByBOQ(r[headers[0]]); });
-    uniqueContainer.appendChild(div);
-  });
-  dataTable.querySelector('thead').innerHTML='';
-  dataTable.querySelector('tbody').innerHTML='';
-  rowsCount.textContent=`${uniqueMap.size} unique BOQ`;
 }
 
-function filterByBOQ(boq){
-  searchBox.value=boq;
-  const results = rawData.filter(r => r[headers[0]] === boq);
-  renderTable(results, boq, true);
+function deleteEntry(date) {
+    delete otEntries[date];
+    renderTable();
+    calculateTotal();
 }
 
-function renderTable(rows, q='', reset=true){
-  const thead=dataTable.querySelector('thead'), tbody=dataTable.querySelector('tbody');
-  if(reset){
-    const visibleHeaders = headers.filter((h,i)=>i<11);
-    thead.innerHTML='<tr>'+visibleHeaders.map(h=>`<th>${h}</th>`).join('')+'<th>Balance</th><th>Total MRN Qty</th></tr>';
-    tbody.innerHTML=''; renderedCount=0;
-  }
-  const chunk = rows.slice(renderedCount, renderedCount+100);
-  chunk.forEach(r=>{
-    const tr = document.createElement('tr');
-    let totalMRN = r._totalMRN||0;
-    const tds = headers.filter((h,i)=>i<11).map((h,i)=>{
-      let val = String(r[h]||'');
-      if(q && i===0){
-        const re = new RegExp(`(${q})`,'gi');
-        val = val.replace(re,'<mark>$1</mark>');
-      }
-      return `<td>${val}</td>`;
-    }).join('');
-    tr.innerHTML = tds + `<td class="${r._balance===0?'zero-balance':''}">${r._balance}</td><td>${totalMRN}</td>`;
-    tbody.appendChild(tr);
-  });
-  renderedCount += chunk.length;
-  rowsCount.textContent=`${rows.length} rows (showing ${renderedCount})`;
-  tableScroll.onscroll = () => {
-    if(tableScroll.scrollTop + tableScroll.clientHeight >= tableScroll.scrollHeight-20){
-      if(renderedCount < rows.length) renderTable(rows, q, false);
+function calculateTotal() {
+    const weeks = parseFloat(document.getElementById("weeks").value) || 0;
+    const extraDays = parseFloat(document.getElementById("extraDays").value) || 0;
+    const presentDays = parseFloat(document.getElementById("presentDays").value) || 0;
+
+    let totalOT = 0;
+    for (const key in otEntries) {
+        const entry = otEntries[key];
+        totalOT += entry.normalOT * NORMAL_OT_RATE;
+        totalOT += entry.doubleOT * DOUBLE_OT_RATE;
     }
-  };
+
+    let total = BASIC_SALARY + totalOT + (weeks * SIXTH_DAY_BONUS) + (extraDays * EXTRA_DAY_RATE) + (presentDays * PRESENT_DAY_RATE) - PENSION;
+
+    document.getElementById("totalSalary").innerText = "Total Salary: " + total.toFixed(2) + " MVR";
 }
-
-// MRN modal
-createMRNBtn.addEventListener('click',()=>{
-  const boq = searchBox.value.trim();
-  if(!boq){ alert('Search a BOQ first!'); return; }
-  const items = rawData.filter(r=>r[headers[0]]===boq);
-  if(!items.length) return;
-
-  const modal = document.createElement('div');
-  Object.assign(modal.style,{position:'fixed',top:0,left:0,width:'100%',height:'100%',background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999});
-  const content = document.createElement('div');
-  Object.assign(content.style,{background:'#fff',padding:'20px',borderRadius:'10px',maxHeight:'80%',overflow:'auto',width:'90%',maxWidth:'600px',color:'#000'});
-  const title = document.createElement('h2'); title.textContent='Create MRN — ' + boq; content.appendChild(title);
-
-  const table = document.createElement('table'); table.style.width='100%';
-  const thead = document.createElement('thead'); thead.innerHTML='<tr><th>Select</th><th>Item</th><th>BOQ Qty</th><th>Required Qty</th><th>Balance</th></tr>';
-  table.appendChild(thead);
-  const tbody = document.createElement('tbody');
-  items.forEach((r,i)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td><input type="checkbox" class="mrn-select"></td>
-      <td>${r[headers[7]]}</td>
-      <td class="boq-qty">${r._balance}</td>
-      <td><input type="number" class="req-qty" value="0" style="width:60px"/></td>
-      <td class="balance">${r._balance}</td>`;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody); content.appendChild(table);
-
-  const selectAllBtn = document.createElement('button'); selectAllBtn.textContent='Select All'; Object.assign(selectAllBtn.style,{marginTop:'10px',padding:'8px'});
-  selectAllBtn.addEventListener('click',()=>{
-    tbody.querySelectorAll('tr').forEach(tr=>{
-      tr.querySelector('.mrn-select').checked=true;
-      const maxQty=Number(tr.querySelector('.boq-qty').textContent);
-      tr.querySelector('.req-qty').value=maxQty;
-      tr.querySelector('.balance').textContent=0;
-    });
-  });
-  content.appendChild(selectAllBtn);
-
-  const generateBtn = document.createElement('button'); generateBtn.textContent='Generate MRN'; Object.assign(generateBtn.style,{marginTop:'10px',marginLeft:'10px',padding:'8px',background:'#06b6d4',color:'#fff'});
-  generateBtn.addEventListener('click',()=>{
-    const mrnData = [];
-    tbody.querySelectorAll('tr').forEach((tr,i)=>{
-      const checked = tr.querySelector('.mrn-select').checked;
-      const reqQty = Number(tr.querySelector('.req-qty').value)||0;
-      if(checked && reqQty>0){
-        mrnData.push({
-          'BOQ No': items[i][headers[0]],
-          'Item Description': items[i][headers[7]],
-          'Required Qty': reqQty
-        });
-        items[i]._balance -= reqQty;
-        items[i]._totalMRN = (items[i]._totalMRN||0) + reqQty;
-      }
-    });
-    if(!mrnData.length){ alert('No items selected'); return; }
-    const ws = XLSX.utils.json_to_sheet(mrnData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'MRN');
-    XLSX.writeFile(wb, 'MRN.xlsx');
-    saveData();
-    renderTable(items, searchBox.value, true);
-    alert('MRN generated and balances updated!');
-  });
-  content.appendChild(generateBtn);
-
-  const closeBtn = document.createElement('button'); closeBtn.textContent='Close';
-  Object.assign(closeBtn.style,{marginTop:'10px',marginLeft:'10px',padding:'8px',cursor:'pointer',background:'#f87171',color:'#fff'});
-  closeBtn.addEventListener('click',()=> modal.remove());
-  content.appendChild(closeBtn);
-
-  modal.appendChild(content); document.body.appendChild(modal);
-});
-
-function debounce(fn,delay=200){let t; return(...args)=>{clearTimeout(t); t=setTimeout(()=>fn(...args),delay);};}
 </script>
+
 </body>
 </html>
