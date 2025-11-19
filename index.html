@@ -1,694 +1,472 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Salary Calculator — Night Blue Neon (Final v5)</title>
-<style>
-/* ---------------- Theme ---------------- */
-:root{
-  --bg:#041028;          /* deep navy */
-  --card:#081526;        /* darker card */
-  --muted:#9fb7d7;       /* soft blue-grey */
-  --accent:#34b6ff;      /* neon cyan */
-  --accent-2:#48ffb0;    /* neon mint */
-  --danger:#ff6b6b;
-  --glass: rgba(255,255,255,0.03);
-  --neon-shadow: 0 6px 30px rgba(52,182,255,0.08), inset 0 1px 0 rgba(255,255,255,0.02);
-  --page-side-pad: 14px; /* Option 3: small side padding */
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Salary & OT Tracker</title>
+    <style>
+        /* Pro UI Styling */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #e8ebed; color: #333; }
+        .header { background-color: #2c3e50; color: white; padding: 20px 0; text-align: center; }
+        .header h1 { margin: 0; font-weight: 300; letter-spacing: 1px; }
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 25px;
+        }
+        .left-panel { flex: 2; min-width: 450px; }
+        .right-panel { flex: 1; min-width: 300px; }
+        
+        /* Calendar Styles */
+        .calendar-section, .controls-section { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; background-color: #fcfcfc; }
+        h2 { border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; color: #2c3e50; font-size: 1.4em; }
+        .pay-period-display { color: #e74c3c; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .calendar-header h3 { margin: 0; color: #2c3e50; font-size: 1.2em; }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+        }
+        .day-name { background-color: #34495e; color: white; font-weight: 600; padding: 8px 0; font-size: 0.9em; }
+        .day-cell {
+            padding: 10px 5px;
+            border: 1px solid #eee;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.1s;
+        }
+        .day-cell.current-month { background-color: #fff; color: #333; }
+        .day-cell:not(.current-month) { background-color: #f9f9f9; color: #aaa; pointer-events: none; }
+        .day-cell.selected { background-color: #3498db !important; color: white; border-color: #2980b9; }
+        .day-cell:hover:not(.selected) { background-color: #eef; }
+        .ot-indicator {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6em;
+            color: #e74c3c;
+            font-weight: bold;
+        }
 
-/* ---------------- Reset & page behavior ---------------- */
-*{box-sizing:border-box}
-html,body{height:100%; margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,#020617,var(--bg)); color:#e6f7ff; -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;}
-/* Prevent rubber-band overscroll on high level while allowing inner scrolling */
-html, body { overscroll-behavior-y: none; }
+        /* OT Input Form & Presets */
+        .ot-form { padding: 15px; border-top: 1px solid #ddd; margin-top: 15px; background-color: #f7f9fb; border-radius: 4px; }
+        .ot-form-title { font-size: 1.1em; font-weight: 600; margin-bottom: 10px; color: #2980b9; }
+        .input-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 0.9em; }
+        input[type="number"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.9em; }
+        
+        .preset-buttons { margin-bottom: 15px; }
+        .preset-buttons button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-top: 5px;
+            transition: background-color 0.2s;
+        }
+        .preset-buttons button.double { background-color: #e74c3c; }
+        .preset-buttons button:hover { background-color: #d35400; }
 
-/* ---------------- App container (edge-to-edge with side padding) ---------------- */
-.app-outer { width:100%; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; padding:8px 0; background:transparent; }
-/* Inner app frame constrained to 390px typical iPhone width, but full width on smaller devices */
-.app {
-  width:100%; max-width:390px; height:100vh; background:transparent; display:flex; flex-direction:column;
-  padding-left:var(--page-side-pad); padding-right:var(--page-side-pad);
-}
-
-/* Topbar */
-.topbar{height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:6px;}
-.title{font-weight:800;font-size:18px;color:var(--accent)}
-.subtitle{font-size:12px;color:var(--muted)}
-
-/* Pages container: scrollable when content larger than viewport */
-.pages{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(80px + env(safe-area-inset-bottom));}
-
-/* Card */
-.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px; padding:12px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.03); box-shadow:var(--neon-shadow);}
-.label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-.input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03); background:var(--glass);color:#e6f7ff;font-size:16px}
-
-/* Totals */
-.bigTotal{font-size:30px;font-weight:800;text-align:center;margin:6px 0;color:#cfefff}
-.smallMuted{font-size:12px;color:var(--muted)}
-
-/* OT list */
-.otList{display:flex;flex-direction:column;gap:8px;margin-top:8px; padding-right:6px}
-.otItem{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.02)}
-.otLeft{font-size:14px}
-.otRight{font-weight:800;color:var(--accent)}
-
-/* Calendar */
-.calendarHeader{display:flex;justify-content:space-between;align-items:center}
-.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.calDay{min-height:64px;border-radius:8px;display:flex;flex-direction:column;justify-content:flex-start;padding:8px;background:transparent;border:1px dashed rgba(255,255,255,0.02);color:var(--muted);font-size:13px;cursor:pointer}
-.calDay .dateNum{font-weight:700; font-size:14px; color:var(--accent)}
-.calDay.active{background:linear-gradient(180deg, rgba(52,182,255,0.06), rgba(72,255,176,0.02)); border:1px solid rgba(52,182,255,0.12); color:#e9fbff; font-weight:700; box-shadow:0 6px 18px rgba(52,182,255,0.06)}
-.calDay.disabled{opacity:0.28; cursor:default; border-style:solid}
-.calBadge{margin-top:6px;font-size:12px;font-weight:700;color:var(--accent)}
-
-/* Buttons */
-.row{display:flex;gap:8px;align-items:center}
-.btn{display:inline-block;padding:10px 12px;border-radius:10px;border:none;font-weight:700;cursor:pointer}
-.btnGhost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-.navPrimary{background:var(--accent); color:#021024}
-.navGreen{background:var(--accent-2); color:#021024}
-
-/* Bottom navigation: fixed and opaque */
-.bottomNav {
-  position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; z-index:999;
-  background:linear-gradient(180deg, rgba(2,6,20,1), rgba(4,16,40,1)); /* solid dark background */
-  padding:10px calc(var(--page-side-pad)); box-shadow:0 -6px 30px rgba(0,0,0,0.6);
-  border-top:1px solid rgba(255,255,255,0.02);
-}
-.navInner{width:100%; max-width:390px; display:flex; gap:8px; justify-content:space-between; align-items:center; padding:6px 6px; box-sizing:border-box;}
-.navBtn{flex:1;text-align:center;padding:10px 8px;border-radius:10px;color:#fff;font-weight:700;font-size:15px;border:none;background:transparent}
-.navFixedAccent{background:var(--accent); color:#021024}
-
-/* Modal */
-.modalBack{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(2,6,20,0.7);display:flex;align-items:center;justify-content:center;z-index:1200}
-.modal{width:92%; max-width:420px; background:var(--card); border-radius:12px; padding:14px; border:1px solid rgba(255,255,255,0.03); box-shadow:var(--neon-shadow)}
-
-/* safe area spacer at bottom so last card isn't covered by nav */
-.safe-spacer { height: calc(78px + env(safe-area-inset-bottom)); }
-
-/* Responsive tweaks */
-@media (max-width:420px){
-  :root{ --page-side-pad: 12px; }
-  .calDay{min-height:56px}
-}
-</style>
+        button.calculate-btn { 
+            padding: 10px; 
+            background-color: #2ecc71; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 0.9em; 
+            margin-top: 10px; 
+            transition: background-color 0.2s; 
+            width: 100%;
+        }
+        button.calculate-btn:hover { background-color: #27ae60; }
+        
+        /* Results/Summary Styles */
+        .results-section { background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .result-detail { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #c0c0c0; font-size: 1em; }
+        .result-detail strong { font-weight: 600; }
+        .result-summary { padding-top: 15px; margin-top: 15px; border-top: 2px solid #bdc3c7; }
+        #gross-salary { font-size: 2.2em; color: #27ae60; font-weight: bold; text-align: center; margin-top: 10px; }
+    </style>
 </head>
 <body>
-<div class="app-outer">
-  <div class="app" role="application" aria-label="Salary Calculator">
-    <!-- Topbar -->
-    <div class="topbar">
-      <div>
-        <div class="title">Salary Calculator</div>
-        <div class="subtitle" id="cycleSubtitle">21 → 20 monthly cycle • Night Blue Neon</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="smallMuted">Target: MVR <span id="targetValue">25,000</span></div>
-      </div>
+    <div class="header">
+        <h1>💵 Professional Salary & OT Tracker</h1>
     </div>
-
-    <!-- Pages -->
-    <div class="pages" id="pages">
-      <!-- HOME -->
-      <div class="card" id="homeTopCard">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="smallMuted">Current total (basic + OT + bonuses - pension)</div>
-            <div id="totalHome" class="bigTotal">MVR 0.00</div>
-            <div class="smallMuted" id="otMvrSummary">OT total: MVR 0.00 • Hours: 0.00</div>
-          </div>
-          <div style="text-align:right">
-            <div class="smallMuted">Max OT/day</div>
-            <div style="font-weight:800; color:var(--accent)">5.75 hrs</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" id="controlsCard">
-        <div style="display:flex;gap:8px;align-items:flex-end">
-          <div style="flex:1">
-            <label class="label">Payroll month</label>
-            <div style="display:flex;gap:8px">
-              <select id="payrollMonth" class="input" style="padding:10px;border-radius:10px"></select>
-              <select id="payrollYear" class="input" style="width:110px;padding:10px;border-radius:10px"></select>
+    <div class="container">
+        
+        <div class="left-panel">
+            <div class="calendar-section">
+                <h2>🗓️ Pay Period Tracker</h2>
+                <div id="pay-period-display" class="pay-period-display"></div>
+                <div class="calendar-header">
+                    <button onclick="changeMonth(-1)">&#9664; Prev Month</button>
+                    <h3 id="current-month-year"></h3>
+                    <button onclick="changeMonth(1)">Next Month &#9654;</button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    </div>
             </div>
-            <div class="smallMuted" style="margin-top:6px">Payroll period = <span id="payrollRangeText">—</span></div>
-          </div>
-          <div style="width:8px"></div>
-          <div style="flex-basis:110px">
-            <label class="label">Reset Data</label>
-            <button id="resetBtn" class="btn btnGhost" style="width:100%">Reset</button>
-          </div>
-        </div>
-      </div>
 
-      <div class="card" style="display:flex;gap:8px">
-        <div style="flex:1">
-          <label class="label">Weeks (6th-day bonus)</label>
-          <input id="weeks" class="input" type="number" min="0" placeholder="0">
-        </div>
-        <div style="width:10px"></div>
-        <div style="flex:1">
-          <label class="label">Extra Days</label>
-          <input id="extraDays" class="input" type="number" min="0" placeholder="0">
-        </div>
-      </div>
+            <div class="ot-form">
+                <div class="ot-form-title" id="ot-form-title">Enter OT for: Please Select a Date</div>
 
-      <div class="card" id="calendarCard">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="smallMuted">Daily OT calendar (tap a day to add/edit OT)</div>
-            <div class="smallMuted">Entries: <span id="entryCount">0</span></div>
-          </div>
-          <div style="text-align:right">
-            <div class="smallMuted">Total created (MVR)</div>
-            <div style="font-weight:800;color:var(--accent)" id="homeTotalOTMVR">MVR 0.00</div>
-          </div>
-        </div>
+                <div class="preset-buttons">
+                    <p style="font-size: 0.9em; font-weight: 600; margin-bottom: 5px;">Presets (Click to Apply):</p>
+                    <button onclick="setPresetOT('normal', 2.15)">Normal 2.15</button>
+                    <button onclick="setPresetOT('normal', 3.45)">Normal 3.45</button>
+                    <button onclick="setPresetOT('normal', 5.45)">Normal 5.45</button>
+                    <button class="double" onclick="setPresetOT('double', 8.00)">Double 8.00</button>
+                </div>
 
-        <div style="height:10px"></div>
-
-        <div class="calendar" style="padding:6px;">
-          <div class="calendarHeader">
-            <div style="display:flex;gap:8px;align-items:center">
-              <button id="prevMonth" class="btn btnGhost">‹</button>
-              <div style="font-weight:800" id="calTitle">Payroll</div>
-              <button id="nextMonth" class="btn btnGhost">›</button>
+                <div class="input-group">
+                    <label for="dailyNormalOt">Normal OT Hours (H.MM format):</label>
+                    <input type="number" id="dailyNormalOt" value="0.00" min="0" step="0.01" onchange="saveDailyOT()" onkeydown="if(event.keyCode == 13) saveDailyOT()">
+                </div>
+                <div class="input-group">
+                    <label for="dailyDoubleOt">Double OT Hours (H.MM format):</label>
+                    <input type="number" id="dailyDoubleOt" value="0.00" min="0" step="0.01" onchange="saveDailyOT()" onkeydown="if(event.keyCode == 13) saveDailyOT()">
+                </div>
             </div>
-            <div class="smallMuted">Tap a date inside payroll to edit</div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:8px">
-            <div class="smallMuted" style="text-align:center">Sun</div><div class="smallMuted" style="text-align:center">Mon</div><div class="smallMuted" style="text-align:center">Tue</div><div class="smallMuted" style="text-align:center">Wed</div><div class="smallMuted" style="text-align:center">Thu</div><div class="smallMuted" style="text-align:center">Fri</div><div class="smallMuted" style="text-align:center">Sat</div>
-          </div>
-
-          <div id="calGrid" class="calGrid" style="margin-top:8px"></div>
         </div>
-      </div>
 
-      <div class="card" id="listCard">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div class="smallMuted">Quick OT entries list</div>
-          <div class="smallMuted">Shows per-entry MVR and H-MM format</div>
+        <div class="right-panel">
+            <div class="controls-section">
+                <h2>➕ Monthly Bonuses</h2>
+                <div class="input-group">
+                    <label for="sixthDaysWorked">Sixth Days Worked:</label>
+                    <input type="number" id="sixthDaysWorked" value="0" min="0" onchange="calculateSalary(); saveDataToLocalStorage()">
+                </div>
+                <div class="input-group">
+                    <label for="extraDaysWorked">Extra Days Worked:</label>
+                    <input type="number" id="extraDaysWorked" value="0" min="0" onchange="calculateSalary(); saveDataToLocalStorage()">
+                </div>
+                <div class="input-group">
+                    <label for="attendanceDays">Attendance Days (for Bonus):</label>
+                    <input type="number" id="attendanceDays" value="0" min="0" onchange="calculateSalary(); saveDataToLocalStorage()">
+                </div>
+            </div>
+
+            <button class="calculate-btn" onclick="calculateSalary(); saveDataToLocalStorage()">Calculate Full Salary</button>
+
+            <div class="results-section">
+                <h2>Summary & Breakdown</h2>
+                <div id="ot-summary"></div>
+                <div id="bonus-summary"></div>
+                
+                <div class="result-summary">
+                    <div id="details"></div>
+                </div>
+
+                <div class="result-summary">
+                    <p><strong>Total Gross Salary (Including Basic Pay):</strong></p>
+                    <div id="gross-salary">0.00</div>
+                </div>
+            </div>
         </div>
-        <div id="otSummary" class="otList" style="margin-top:10px"></div>
-      </div>
-
-      <!-- spacer so last content isn't covered by nav -->
-      <div class="safe-spacer" aria-hidden="true"></div>
     </div>
 
-    <!-- Bottom navigation (text-only) -->
-    <div class="bottomNav" role="navigation" aria-label="Bottom navigation">
-      <div class="navInner">
-        <button class="navBtn" id="navHome">Home</button>
-        <button class="navBtn" id="navOT">OT Calendar</button>
-        <button class="navBtn" id="navList">Entries</button>
-        <button class="navBtn" id="navTarget">Target</button>
-      </div>
-    </div>
+    <script>
+        // Payroll Constants
+        const BASIC_SALARY = 15290.00;
+        const NORMAL_OT_RATE = 52.03;
+        const DOUBLE_OT_RATE = 62.44;
+        const SIXTH_DAY_BONUS = 374.63;
+        const EXTRA_DAY_RATE = 166.50;
+        const ATTENDANCE_BONUS_RATE = 75.00;
+        const STORAGE_KEY = 'SalaryTrackerData'; // Key for Local Storage
 
-  </div>
-</div>
+        
+        // Global State
+        let otData = {}; 
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = null;
 
-<!-- Modal root -->
-<div id="modalRoot" style="display:none"></div>
+        // --- LOCAL STORAGE FUNCTIONS ---
 
-<script>
-/* ---------------- Constants ---------------- */
-const BASIC_SALARY = 15290;
-const NORMAL_OT_RATE = 52.03;
-const DOUBLE_OT_RATE = 62.44;
-const SIXTH_DAY_BONUS = 374.63;
-const EXTRA_DAY_RATE = 166.5;
-const PENSION = 699.30;
-const TARGET = 25000;
-const MAX_OT_PER_DAY = 5.75;
+        function saveDataToLocalStorage() {
+            const data = {
+                otData: otData,
+                currentMonth: currentMonth,
+                currentYear: currentYear,
+                sixthDaysWorked: document.getElementById('sixthDaysWorked').value,
+                extraDaysWorked: document.getElementById('extraDaysWorked').value,
+                attendanceDays: document.getElementById('attendanceDays').value
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
 
-const KEY = "salary_calc_final_v5";
+        function loadDataFromLocalStorage() {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                const data = JSON.parse(storedData);
+                
+                // Restore global state
+                otData = data.otData || {};
+                currentMonth = data.currentMonth !== undefined ? data.currentMonth : new Date().getMonth();
+                currentYear = data.currentYear !== undefined ? data.currentYear : new Date().getFullYear();
+                
+                // Restore input fields
+                document.getElementById('sixthDaysWorked').value = data.sixthDaysWorked || 0;
+                document.getElementById('extraDaysWorked').value = data.extraDaysWorked || 0;
+                document.getElementById('attendanceDays').value = data.attendanceDays || 0;
+            }
+        }
 
-/* ---------------- Storage init ---------------- */
-let store = JSON.parse(localStorage.getItem(KEY) || '{"otEntries":{},"inputs":{}}');
-if(!store.otEntries) store.otEntries = {};
-if(!store.inputs) store.inputs = {};
 
-/* ---------------- Utility functions ---------------- */
-function saveStore(){ localStorage.setItem(KEY, JSON.stringify(store)); }
-function fmtISO(d){ return d.toISOString().split('T')[0]; }
-function dayName(d){ return d.toLocaleDateString('en-US',{weekday:'short'}); }
-function clampNumber(n, min, max){ if(isNaN(n)) return min; return Math.max(min, Math.min(max, n)); }
+        // --- TIME CONVERSION FUNCTIONS (H.MM -> H.D) ---
 
-/* ---------------- OT input parser (Option1) ---------------- */
-/* Accepts "6-12", "6:12", "3.25", "7" */
-function parseOTInput(str){
-  if(str === null || str === undefined) return NaN;
-  str = String(str).trim();
-  if(str === "") return 0;
-  // normalize separators
-  str = str.replace(/\u2013|\u2014|,/g, '-'); // en-dash/em-dash/commas -> hyphen
-  str = str.replace(':','-');
-  // If hyphen present => H-MM
-  if(str.includes('-')){
-    const parts = str.split('-').map(s=>s.trim()).filter(s=>s.length>0);
-    if(parts.length === 0) return NaN;
-    const h = Number(parts[0]);
-    const m = parts[1] !== undefined ? Number(parts[1]) : 0;
-    if(isNaN(h) || isNaN(m)) return NaN;
-    const minutes = clampNumber(m,0,59);
-    return h + (minutes/60);
-  }
-  // decimal or integer
-  const v = Number(str);
-  if(!isNaN(v)) return v;
-  return NaN;
-}
+        /**
+         * Converts time input (e.g., 5.45 for 5 hours 45 minutes) into decimal hours (5.75).
+         */
+        function timeToDecimalHours(time) {
+            if (typeof time !== 'number' || isNaN(time) || time < 0) return 0;
+            const hours = Math.floor(time);
+            const minutesFractional = time - hours; 
+            
+            const minutes = Math.round(minutesFractional * 100); 
+            const fractionalHours = minutes / 60;
+            
+            return hours + fractionalHours;
+        }
 
-/* Format decimal hours into H-MM string (6.2 -> 6-12) */
-function formatHoursToHdashMM(decimalHours){
-  const h = Math.floor(decimalHours);
-  const minutes = Math.round((decimalHours - h) * 60);
-  const mm = String(clampNumber(minutes,0,59)).padStart(2,'0');
-  return `${h}-${mm}`;
-}
+        /**
+         * Converts decimal hours (e.g., 5.75) back to time format (5.45) for display/editing.
+         */
+        function decimalHoursToTime(decimalHours) {
+            const hours = Math.floor(decimalHours);
+            const minutesDecimal = (decimalHours - hours) * 60; 
+            
+            const minutes = Math.round(minutesDecimal);
+            
+            const minutesStr = String(minutes).padStart(2, '0');
+            
+            return `${hours}.${minutesStr}`;
+        }
 
-/* ---------------- Payroll controls ---------------- */
-const payrollMonthSelect = document.getElementById('payrollMonth');
-const payrollYearSelect = document.getElementById('payrollYear');
-const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-let now = new Date();
-let defaultYear = now.getFullYear();
-let defaultMonth = now.getMonth();
+        // --- PRESET FUNCTION ---
+        function setPresetOT(type, value) {
+            if (!selectedDate) {
+                alert("Please select a date on the calendar first before setting a preset.");
+                return;
+            }
+            
+            const valueStr = value.toFixed(2); 
 
-// populate select controls
-months.forEach((m,idx)=>{
-  const opt = document.createElement('option'); opt.value = idx; opt.textContent = m;
-  payrollMonthSelect.appendChild(opt);
-});
-for(let y=defaultYear-2;y<=defaultYear+2;y++){
-  const opt = document.createElement('option'); opt.value = y; opt.textContent = y;
-  payrollYearSelect.appendChild(opt);
-}
-if(store.inputs.payrollMonth !== undefined) payrollMonthSelect.value = store.inputs.payrollMonth;
-else { payrollMonthSelect.value = defaultMonth; store.inputs.payrollMonth = Number(defaultMonth); }
-if(store.inputs.payrollYear !== undefined) payrollYearSelect.value = store.inputs.payrollYear;
-else { payrollYearSelect.value = defaultYear; store.inputs.payrollYear = Number(defaultYear); }
+            if (type === 'normal') {
+                document.getElementById('dailyNormalOt').value = valueStr;
+            } else if (type === 'double') {
+                document.getElementById('dailyDoubleOt').value = valueStr;
+            }
+            // Trigger save and update immediately after setting the preset
+            saveDailyOT(); 
+        }
 
-function getPayrollRange(monthIndex, year){
-  const start = new Date(year, monthIndex, 21);
-  const end = new Date(year, monthIndex + 1, 20);
-  return { start, end };
-}
-function updatePayrollRangeText(){
-  const m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-  const {start, end} = getPayrollRange(m,y);
-  const fmt = d=> d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  document.getElementById('payrollRangeText').textContent = fmt(start) + ' → ' + fmt(end);
-  document.getElementById('calTitle').textContent = months[m] + ' ' + y + ' payroll';
-  store.inputs.payrollMonth = m;
-  store.inputs.payrollYear = y;
-  saveStore();
-  renderCalendar();
-}
-payrollMonthSelect.addEventListener('change', updatePayrollRangeText);
-payrollYearSelect.addEventListener('change', updatePayrollRangeText);
 
-/* ---------------- Calendar rendering (fixed 6 rows) ---------------- */
-const calGrid = document.getElementById('calGrid');
-function renderCalendar(){
-  calGrid.innerHTML = '';
-  const m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-  const {start, end} = getPayrollRange(m,y);
+        // --- CALENDAR/PAY PERIOD FUNCTIONS ---
 
-  const gridStart = new Date(start);
-  gridStart.setDate(gridStart.getDate() - gridStart.getDay()); // sunday before or equal
-  const totalCells = 42;
+        function getPayPeriod(displayMonth, displayYear) {
+            const endMonthIndex = displayMonth;
+            const endYear = displayYear;
+            
+            const startMonthIndex = (displayMonth - 1 + 12) % 12;
+            const startYear = displayMonth === 0 ? displayYear - 1 : displayYear;
 
-  for(let i=0;i<totalCells;i++){
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
-    const iso = fmtISO(d);
-    const cell = document.createElement('div');
-    cell.className = 'calDay';
-    const inPayroll = (d >= start && d <= end);
-    const dayNum = document.createElement('div'); dayNum.className='dateNum'; dayNum.textContent = d.getDate();
-    const small = document.createElement('div'); small.className='smallMuted'; small.textContent = dayName(d);
-    cell.appendChild(dayNum);
-    cell.appendChild(small);
+            const startDate = new Date(Date.UTC(startYear, startMonthIndex, 21));
+            const endDate = new Date(Date.UTC(endYear, endMonthIndex, 20));
 
-    if(!inPayroll){
-      cell.classList.add('disabled');
-      calGrid.appendChild(cell);
-      continue;
-    }
-    if(store.otEntries[iso]){
-      cell.classList.add('active');
-      const e = store.otEntries[iso];
-      const totalH = (Number(e.normal)||0) + (Number(e.double)||0);
-      const totalM = ((Number(e.normal)||0)*NORMAL_OT_RATE + (Number(e.double)||0)*DOUBLE_OT_RATE);
-      const badge = document.createElement('div'); badge.className='calBadge';
-      badge.textContent = `${formatHoursToHdashMM(totalH)} • MVR ${totalM.toFixed(2)}`;
-      cell.appendChild(badge);
-    }
-    cell.onclick = ()=>{ openModalForDate(iso); };
-    calGrid.appendChild(cell);
-  }
-}
+            return { startDate, endDate };
+        }
 
-/* prev/next month */
-document.getElementById('prevMonth').addEventListener('click', ()=>{
-  let m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-  m--; if(m<0){ m=11; y--; }
-  payrollMonthSelect.value = m; payrollYearSelect.value = y; updatePayrollRangeText();
-});
-document.getElementById('nextMonth').addEventListener('click', ()=>{
-  let m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-  m++; if(m>11){ m=0; y++; }
-  payrollMonthSelect.value = m; payrollYearSelect.value = y; updatePayrollRangeText();
-});
+        function updatePayPeriodDisplay(startDate, endDate) {
+            const startStr = startDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+            const endStr = endDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('pay-period-display').textContent = `PAY PERIOD: ${startStr} to ${endStr}`;
+        }
 
-/* ---------------- Render home summary & list ---------------- */
-function renderHome(){
-  document.getElementById('weeks').value = store.inputs.weeks || '';
-  document.getElementById('extraDays').value = store.inputs.extraDays || '';
-  const total = computeTotal();
-  document.getElementById('totalHome').innerText = 'MVR ' + total.toFixed(2);
-  const keys = Object.keys(store.otEntries).sort();
-  document.getElementById('entryCount').innerText = keys.length;
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const monthYearDisplay = document.getElementById('current-month-year');
+            
+            const date = new Date(currentYear, currentMonth);
+            
+            monthYearDisplay.textContent = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            grid.innerHTML = ''; 
 
-  let totalHours = 0; let totalMVR = 0;
-  const summaryEl = document.getElementById('otSummary');
-  summaryEl.innerHTML = '';
-  if(keys.length===0){
-    summaryEl.innerHTML = '<div class="smallMuted">No OT entries yet</div>';
-  } else {
-    keys.forEach(k=>{
-      const e = store.otEntries[k];
-      const hrs = (Number(e.normal)||0) + (Number(e.double)||0);
-      const mvr = (Number(e.normal)||0)*NORMAL_OT_RATE + (Number(e.double)||0)*DOUBLE_OT_RATE;
-      totalHours += hrs; totalMVR += mvr;
-      const item = document.createElement('div'); item.className='otItem';
-      item.innerHTML = `<div class="otLeft"><div style="font-weight:800">${k}</div><div class="smallMuted">${dayName(new Date(k))}</div></div>
-        <div style="text-align:right"><div class="otRight">MVR ${mvr.toFixed(2)}</div><div style="font-size:12px;color:var(--muted)">H:${formatHoursToHdashMM(hrs)} (${hrs.toFixed(2)}h) • N:${formatHoursToHdashMM(Number(e.normal)||0)} D:${formatHoursToHdashMM(Number(e.double)||0)}</div></div>`;
-      item.onclick = ()=>{ openModalForDate(k); };
-      summaryEl.appendChild(item);
-    });
-  }
-  document.getElementById('otMvrSummary').textContent = `OT total: MVR ${totalMVR.toFixed(2)} • Hours: ${totalHours.toFixed(2)}`;
-  document.getElementById('homeTotalOTMVR').innerText = 'MVR ' + totalMVR.toFixed(2);
-  renderTarget();
-  renderCalendar();
-}
+            const { startDate, endDate } = getPayPeriod(currentMonth, currentYear);
+            updatePayPeriodDisplay(startDate, endDate);
 
-/* ---------------- Compute total salary ---------------- */
-function computeTotal(){
-  const weeks = Number(document.getElementById('weeks').value) || Number(store.inputs.weeks) || 0;
-  const extraDays = Number(document.getElementById('extraDays').value) || Number(store.inputs.extraDays) || 0;
-  let totalOTAmount = 0;
-  for(const k in store.otEntries){
-    const e = store.otEntries[k];
-    totalOTAmount += (Number(e.normal)||0)*NORMAL_OT_RATE + (Number(e.double)||0)*DOUBLE_OT_RATE;
-  }
-  let total = BASIC_SALARY + totalOTAmount + (weeks*SIXTH_DAY_BONUS) + (extraDays*EXTRA_DAY_RATE) - PENSION;
-  return total;
-}
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            daysOfWeek.forEach(day => {
+                grid.insertAdjacentHTML('beforeend', `<div class="day-name">${day}</div>`);
+            });
 
-/* ---------------- Modal (single string inputs) ---------------- */
-const modalRoot = document.getElementById('modalRoot');
-function openModalForDate(dateISO){
-  modalRoot.innerHTML = '';
-  const back = document.createElement('div'); back.className='modalBack';
-  const modal = document.createElement('div'); modal.className='modal';
-  const title = document.createElement('div'); title.style.marginBottom='8px';
-  title.innerHTML = `<div style="font-weight:800;font-size:16px">${dateISO}</div><div class="smallMuted">${new Date(dateISO).toLocaleDateString()}</div>`;
-  modal.appendChild(title);
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            const lastDateOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  const labN = document.createElement('label'); labN.className='label'; labN.textContent='Normal OT (H-MM or decimal)';
-  modal.appendChild(labN);
-  const inputN = document.createElement('input'); inputN.type='text'; inputN.placeholder='e.g. 6-12 or 6.2 or 6'; inputN.className='input';
-  modal.appendChild(inputN);
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                grid.insertAdjacentHTML('beforeend', `<div class="day-cell"></div>`);
+            }
 
-  const labD = document.createElement('label'); labD.className='label'; labD.textContent='Double OT (H-MM or decimal)';
-  modal.appendChild(labD);
-  const inputD = document.createElement('input'); inputD.type='text'; inputD.placeholder='e.g. 2-30 or 2.5'; inputD.className='input';
-  modal.appendChild(inputD);
+            for (let day = 1; day <= lastDateOfMonth; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                let cellClass = 'day-cell current-month';
+                
+                if (dateStr === selectedDate) {
+                    cellClass += ' selected';
+                }
 
-  const mvrPreview = document.createElement('div'); mvrPreview.className='smallMuted'; mvrPreview.style.marginTop='8px';
-  modal.appendChild(mvrPreview);
+                const dailyOT = otData[dateStr];
+                let otIndicator = '';
+                if (dailyOT && (dailyOT.normal > 0 || dailyOT.double > 0)) {
+                    otIndicator = `<span class="ot-indicator">OT: ${dailyOT.normal.toFixed(2)} / ${dailyOT.double.toFixed(2)}</span>`;
+                }
 
-  const btnRow = document.createElement('div'); btnRow.style.display='flex'; btnRow.style.gap='8px'; btnRow.style.marginTop='12px';
-  const saveBtn = document.createElement('button'); saveBtn.className='btn navPrimary'; saveBtn.textContent='Save / Update';
-  const delBtn = document.createElement('button'); delBtn.className='btn btnGhost'; delBtn.textContent='Delete';
-  const closeBtn = document.createElement('button'); closeBtn.className='btn'; closeBtn.textContent='Close';
-  btnRow.appendChild(saveBtn); btnRow.appendChild(delBtn); btnRow.appendChild(closeBtn);
-  modal.appendChild(btnRow);
+                grid.insertAdjacentHTML('beforeend', 
+                    `<div class="${cellClass}" data-date="${dateStr}" onclick="selectDate('${dateStr}')">
+                        ${day}
+                        ${otIndicator}
+                    </div>`
+                );
+            }
+        }
 
-  const existing = store.otEntries[dateISO] || {normal:0,double:0};
-  inputN.value = existing.normal ? formatHoursToHdashMM(Number(existing.normal)) : '';
-  inputD.value = existing.double ? formatHoursToHdashMM(Number(existing.double)) : '';
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            selectedDate = null; 
+            renderCalendar();
+            document.getElementById('ot-form-title').textContent = 'Enter OT for: Please Select a Date';
+            document.getElementById('dailyNormalOt').value = '0.00';
+            document.getElementById('dailyDoubleOt').value = '0.00';
+            
+            calculateSalary(); 
+            saveDataToLocalStorage(); // Save changes to month/year
+        }
 
-  const computePreview = ()=>{
-    const nRaw = inputN.value.trim();
-    const dRaw = inputD.value.trim();
-    const nVal = parseOTInput(nRaw);
-    const dVal = parseOTInput(dRaw);
-    const nValSafe = isNaN(nVal) ? 0 : nVal;
-    const dValSafe = isNaN(dVal) ? 0 : dVal;
-    const hrs = nValSafe + dValSafe;
-    const mvr = nValSafe * NORMAL_OT_RATE + dValSafe * DOUBLE_OT_RATE;
-    const nText = isNaN(nVal) ? 'invalid' : `${formatHoursToHdashMM(nVal)} (${nVal.toFixed(2)}h)`;
-    const dText = isNaN(dVal) ? 'invalid' : `${formatHoursToHdashMM(dVal)} (${dVal.toFixed(2)}h)`;
-    mvrPreview.innerHTML = `<div><b>Normal:</b> ${nText}</div><div><b>Double:</b> ${dText}</div><div style="margin-top:6px"><b>Total Hours:</b> ${hrs.toFixed(2)} • <b>Total MVR:</b> ${mvr.toFixed(2)}</div>`;
-  };
-  inputN.addEventListener('input', computePreview);
-  inputD.addEventListener('input', computePreview);
-  computePreview();
+        function selectDate(dateStr) {
+            if (selectedDate) {
+                const prevCell = document.querySelector(`.day-cell[data-date="${selectedDate}"]`);
+                if (prevCell) prevCell.classList.remove('selected');
+            }
 
-  saveBtn.onclick = ()=>{
-    const nRaw = inputN.value.trim();
-    const dRaw = inputD.value.trim();
-    const nVal = parseOTInput(nRaw);
-    const dVal = parseOTInput(dRaw);
-    if((nRaw !== '' && isNaN(nVal)) || (dRaw !== '' && isNaN(dVal))){
-      if(!confirm('One of your inputs looks invalid. Save zeros for invalid fields?')) return;
-    }
-    const nFinal = isNaN(nVal) ? 0 : Number(nVal.toFixed(4));
-    const dFinal = isNaN(dVal) ? 0 : Number(dVal.toFixed(4));
-    store.otEntries[dateISO] = { normal: nFinal, double: dFinal };
-    saveStore();
-    closeModal();
-    renderHome();
-    alert('Saved');
-  };
-  delBtn.onclick = ()=>{
-    if(!store.otEntries[dateISO]){ alert('No entry for this date.'); return; }
-    if(confirm('Delete entry '+dateISO+'?')){ delete store.otEntries[dateISO]; saveStore(); closeModal(); renderHome(); }
-  };
-  closeBtn.onclick = closeModal;
+            selectedDate = dateStr;
+            const currentCell = document.querySelector(`.day-cell[data-date="${selectedDate}"]`);
+            if (currentCell) currentCell.classList.add('selected');
 
-  back.appendChild(modal);
-  modalRoot.appendChild(back);
-  modalRoot.style.display = 'block';
-  back.onclick = (e)=>{ if(e.target === back){ closeModal(); } };
-}
-function closeModal(){ modalRoot.style.display='none'; modalRoot.innerHTML=''; }
+            const dailyOT = otData[dateStr] || { normal: 0, double: 0 };
+            
+            document.getElementById('dailyNormalOt').value = decimalHoursToTime(dailyOT.normal);
+            document.getElementById('dailyDoubleOt').value = decimalHoursToTime(dailyOT.double);
 
-/* ---------------- Reset data ---------------- */
-document.getElementById('resetBtn').addEventListener('click', ()=>{
-  if(confirm('Reset all saved data? This will delete OT entries and inputs.')){
-    store = { otEntries: {}, inputs: {} };
-    saveStore();
-    payrollMonthSelect.value = defaultMonth;
-    payrollYearSelect.value = defaultYear;
-    document.getElementById('weeks').value = '';
-    document.getElementById('extraDays').value = '';
-    updatePayrollRangeText();
-    renderHome();
-    alert('Data reset.');
-  }
-});
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const dateObj = new Date(year, month - 1, day); 
 
-/* ---------------- Inputs listeners ---------------- */
-['weeks','extraDays'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', ()=>{
-    store.inputs[id] = document.getElementById(id).value;
-    saveStore();
-    renderHome();
-  });
-});
+            document.getElementById('ot-form-title').textContent = `Enter OT for: ${dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+        }
 
-/* ---------------- Navigation ---------------- */
-document.getElementById('navHome').addEventListener('click', ()=>{ scrollToTop(); });
-document.getElementById('navOT').addEventListener('click', ()=>{ scrollToElement('calendarCard'); });
-document.getElementById('navList').addEventListener('click', ()=>{ scrollToElement('listCard'); });
-document.getElementById('navTarget').addEventListener('click', ()=>{ scrollToElement('controlsCard'); renderTarget(); });
+        function saveDailyOT() {
+            if (!selectedDate) {
+                return;
+            }
 
-function scrollToTop(){ const pages = document.getElementById('pages'); pages.scrollTo({ top: 0, behavior:'smooth'}); }
-function scrollToElement(id){
-  const pages = document.getElementById('pages');
-  const container = document.getElementById(id);
-  if(!container) return;
-  const top = container.offsetTop - 12;
-  pages.scrollTo({ top, behavior:'smooth' });
-}
+            const rawNormal = parseFloat(document.getElementById('dailyNormalOt').value) || 0;
+            const rawDouble = parseFloat(document.getElementById('dailyDoubleOt').value) || 0;
+            
+            let normal = timeToDecimalHours(rawNormal);
+            let double = timeToDecimalHours(rawDouble);
+            
+            otData[selectedDate] = { normal: normal, double: double };
+            
+            renderCalendar(); 
+            calculateSalary();
+            saveDataToLocalStorage(); // Save the updated OT data
+        }
 
-/* ---------------- Target calculations ---------------- */
-function renderTarget(){
-  store.inputs.weeks = document.getElementById('weeks').value || store.inputs.weeks || '';
-  store.inputs.extraDays = document.getElementById('extraDays').value || store.inputs.extraDays || '';
-  saveStore();
-  const total = computeTotal();
-  // show target in a simple alert-like card at top (reuse homeTopCard)
-  document.getElementById('totalHome').innerText = 'MVR ' + total.toFixed(2);
-  // target page uses same logic as before but here we just provide basic info when clicked
-  const m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-  const {start, end} = getPayrollRange(m,y);
-  const nowDate = new Date();
-  const cur = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
-  let iter = new Date(cur < start ? start : cur);
-  const days = [];
-  while(iter <= end){
-    const wd = iter.getDay();
-    if(wd !== 5 && wd !== 6){ days.push(new Date(iter)); }
-    iter.setDate(iter.getDate() + 1);
-  }
-  const remainingAmount = TARGET - total;
-  if(remainingAmount <= 0){
-    alert('Target already met: MVR ' + TARGET.toFixed(2));
-    return;
-  }
-  const totalNormalOTNeeded = remainingAmount / NORMAL_OT_RATE;
-  const maxPossibleHours = days.length * MAX_OT_PER_DAY;
-  const maxPossibleMVR = maxPossibleHours * NORMAL_OT_RATE;
-  let message = `Missing MVR ${remainingAmount.toFixed(2)}\nRemaining days: ${days.length}\nNeeded normal OT hours: ${totalNormalOTNeeded.toFixed(2)}h\nMax possible (max ${MAX_OT_PER_DAY}h/day): ${maxPossibleMVR.toFixed(2)} MVR`;
-  if(maxPossibleMVR < remainingAmount) message += `\n\nTarget NOT reachable using only ${MAX_OT_PER_DAY}h/day normal OT.`;
-  alert(message);
-}
+        // --- SALARY CALCULATION FUNCTIONS ---
 
-/* ---------------- Startup ---------------- */
-function init(){
-  updatePayrollRangeText();
-  renderCalendar();
-  renderHome();
-  // safe: show top on open
-  scrollToTop();
-}
-init();
+        function calculateSalary() {
+            let totalNormalOtHours = 0;
+            let totalDoubleOtHours = 0;
+            
+            const { startDate, endDate } = getPayPeriod(currentMonth, currentYear);
 
-/* ---------------- Helpers ---------------- */
-function updatePayrollRangeText(){ /* function declared earlier but hoisted - redefine minimal bridge */ 
-  const m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-  const startEnd = (function(m,y){ return { start: new Date(y,m,21), end: new Date(y,m+1,20) }; })(m,y);
-  const fmt = d=> d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  document.getElementById('payrollRangeText').textContent = fmt(startEnd.start) + ' → ' + fmt(startEnd.end);
-  document.getElementById('calTitle').textContent = months[m] + ' ' + y + ' payroll';
-  store.inputs.payrollMonth = m;
-  store.inputs.payrollYear = y;
-  saveStore();
-  renderCalendar();
-}
-function renderCalendar(){ /* placeholder to be replaced; actual function was defined earlier - call full version by reassigning above */ }
-function renderHome(){ /* placeholder - real fn above */ }
-function computeTotal(){ /* placeholder - real fn above */ }
+            for (const dateStr in otData) {
+                const [year, month, day] = dateStr.split('-').map(Number);
+                const otDate = new Date(Date.UTC(year, month - 1, day));
+                
+                if (otDate >= startDate && otDate <= endDate) {
+                    totalNormalOtHours += otData[dateStr].normal;
+                    totalDoubleOtHours += otData[dateStr].double;
+                }
+            }
 
-/* Because we re-declared some functions inline, re-wire them to the fully defined ones earlier */
-(function rewire(){
-  // reassign the implementations declared earlier in code block above by obtaining them from their toString - no need: just redeclare them here properly
-  // We'll re-declare essential functions to ensure they are available in this block scope
+            const sixthDaysWorked = parseInt(document.getElementById('sixthDaysWorked').value) || 0;
+            const extraDaysWorked = parseInt(document.getElementById('extraDaysWorked').value) || 0;
+            const attendanceDays = parseInt(document.getElementById('attendanceDays').value) || 0;
 
-  // full implementations (duplicate of earlier for robustness)
-  // computeTotal (actual)
-  window.computeTotal = function(){
-    const weeks = Number(document.getElementById('weeks').value) || Number(store.inputs.weeks) || 0;
-    const extraDays = Number(document.getElementById('extraDays').value) || Number(store.inputs.extraDays) || 0;
-    let totalOTAmount = 0;
-    for(const k in store.otEntries){
-      const e = store.otEntries[k];
-      totalOTAmount += (Number(e.normal)||0)*NORMAL_OT_RATE + (Number(e.double)||0)*DOUBLE_OT_RATE;
-    }
-    let total = BASIC_SALARY + totalOTAmount + (weeks*SIXTH_DAY_BONUS) + (extraDays*EXTRA_DAY_RATE) - PENSION;
-    return total;
-  };
+            const normalOtPay = totalNormalOtHours * NORMAL_OT_RATE;
+            const doubleOtPay = totalDoubleOtHours * DOUBLE_OT_RATE;
+            const totalOtPay = normalOtPay + doubleOtPay;
 
-  // renderCalendar (actual)
-  window.renderCalendar = function(){
-    calGrid.innerHTML = '';
-    const m = Number(payrollMonthSelect.value), y = Number(payrollYearSelect.value);
-    const {start, end} = (function(m,y){ return { start: new Date(y,m,21), end: new Date(y,m+1,20) }; })(m,y);
+            const sixthDayPay = sixthDaysWorked * SIXTH_DAY_BONUS;
+            const extraDayPay = extraDaysWorked * EXTRA_DAY_RATE;
+            const attendanceBonus = attendanceDays * ATTENDANCE_BONUS_RATE;
+            const totalBonusPay = sixthDayPay + extraDayPay + attendanceBonus;
 
-    const gridStart = new Date(start);
-    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
-    const totalCells = 42;
-    for(let i=0;i<totalCells;i++){
-      const d = new Date(gridStart);
-      d.setDate(gridStart.getDate() + i);
-      const iso = fmtISO(d);
-      const cell = document.createElement('div');
-      cell.className = 'calDay';
-      const inPayroll = (d >= start && d <= end);
-      const dayNum = document.createElement('div'); dayNum.className='dateNum'; dayNum.textContent = d.getDate();
-      const small = document.createElement('div'); small.className='smallMuted'; small.textContent = dayName(d);
-      cell.appendChild(dayNum);
-      cell.appendChild(small);
+            const totalAllowances = totalOtPay + totalBonusPay;
+            const grossSalary = BASIC_SALARY + totalAllowances;
 
-      if(!inPayroll){
-        cell.classList.add('disabled');
-        calGrid.appendChild(cell);
-        continue;
-      }
-      if(store.otEntries[iso]){
-        cell.classList.add('active');
-        const e = store.otEntries[iso];
-        const totalH = (Number(e.normal)||0) + (Number(e.double)||0);
-        const totalM = ((Number(e.normal)||0)*NORMAL_OT_RATE + (Number(e.double)||0)*DOUBLE_OT_RATE);
-        const badge = document.createElement('div'); badge.className='calBadge';
-        badge.textContent = `${formatHoursToHdashMM(totalH)} • MVR ${totalM.toFixed(2)}`;
-        cell.appendChild(badge);
-      }
-      cell.onclick = ()=>{ openModalForDate(iso); };
-      calGrid.appendChild(cell);
-    }
-  };
+            const otSummaryHtml = `
+                <div class="result-detail"><strong>Total Normal OT Pay:</strong> <span>${normalOtPay.toFixed(2)} (${totalNormalOtHours.toFixed(2)} hrs)</span></div>
+                <div class="result-detail"><strong>Total Double OT Pay:</strong> <span>${doubleOtPay.toFixed(2)} (${totalDoubleOtHours.toFixed(2)} hrs)</span></div>
+                <div class="result-detail" style="border-top: 1px solid #ddd; margin-top: 5px;"><strong>TOTAL OVERTIME:</strong> <strong>${totalOtPay.toFixed(2)}</strong></div>
+            `;
+            document.getElementById('ot-summary').innerHTML = otSummaryHtml;
 
-  // renderHome (actual)
-  window.renderHome = function(){
-    document.getElementById('weeks').value = store.inputs.weeks || '';
-    document.getElementById('extraDays').value = store.inputs.extraDays || '';
-    const total = computeTotal();
-    document.getElementById('totalHome').innerText = 'MVR ' + total.toFixed(2);
-    const keys = Object.keys(store.otEntries).sort();
-    document.getElementById('entryCount').innerText = keys.length;
+            const bonusSummaryHtml = `
+                <div class="result-detail"><span>Sixth Day Pay (${sixthDaysWorked} days):</span> <span>${sixthDayPay.toFixed(2)}</span></div>
+                <div class="result-detail"><span>Extra Day Pay (${extraDaysWorked} days):</span> <span>${extraDayPay.toFixed(2)}</span></div>
+                <div class="result-detail"><span>Attendance Bonus (${attendanceDays} days):</span> <span>${attendanceBonus.toFixed(2)}</span></div>
+                <div class="result-detail" style="border-top: 1px solid #ddd; margin-top: 5px;"><strong>TOTAL BONUSES:</strong> <strong>${totalBonusPay.toFixed(2)}</strong></div>
+            `;
+            document.getElementById('bonus-summary').innerHTML = bonusSummaryHtml;
+            
+            document.getElementById('details').innerHTML = `<div class="result-detail"><strong>TOTAL ALLOWANCES:</strong> <strong>${totalAllowances.toFixed(2)}</strong></div>`;
+            document.getElementById('gross-salary').innerText = grossSalary.toFixed(2);
+        }
 
-    let totalHours = 0; let totalMVR = 0;
-    const summaryEl = document.getElementById('otSummary');
-    summaryEl.innerHTML = '';
-    if(keys.length===0){
-      summaryEl.innerHTML = '<div class="smallMuted">No OT entries yet</div>';
-    } else {
-      keys.forEach(k=>{
-        const e = store.otEntries[k];
-        const hrs = (Number(e.normal)||0) + (Number(e.double)||0);
-        const mvr = (Number(e.normal)||0)*NORMAL_OT_RATE + (Number(e.double)||0)*DOUBLE_OT_RATE;
-        totalHours += hrs; totalMVR += mvr;
-        const item = document.createElement('div'); item.className='otItem';
-        item.innerHTML = `<div class="otLeft"><div style="font-weight:800">${k}</div><div class="smallMuted">${dayName(new Date(k))}</div></div>
-          <div style="text-align:right"><div class="otRight">MVR ${mvr.toFixed(2)}</div><div style="font-size:12px;color:var(--muted)">H:${formatHoursToHdashMM(hrs)} (${hrs.toFixed(2)}h) • N:${formatHoursToHdashMM(Number(e.normal)||0)} D:${formatHoursToHdashMM(Number(e.double)||0)}</div></div>`;
-        item.onclick = ()=>{ openModalForDate(k); };
-        summaryEl.appendChild(item);
-      });
-    }
-    document.getElementById('otMvrSummary').textContent = `OT total: MVR ${totalMVR.toFixed(2)} • Hours: ${totalHours.toFixed(2)}`;
-    document.getElementById('homeTotalOTMVR').innerText = 'MVR ' + totalMVR.toFixed(2);
-    renderTarget(); renderCalendar();
-  };
-
-  // ensure initial render uses final functions
-  updatePayrollRangeText();
-  renderCalendar();
-  renderHome();
-})();
-</script>
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDataFromLocalStorage(); // Load data first
+            
+            // Set current month/year to loaded values, or today's date if no data was found
+            const today = new Date();
+            if (currentMonth === undefined) currentMonth = today.getMonth();
+            if (currentYear === undefined) currentYear = today.getFullYear();
+            
+            renderCalendar();
+            calculateSalary();
+        });
+    </script>
 </body>
 </html>
