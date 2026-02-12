@@ -3,134 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTCC Inspection Report</title>
+    <title>Inspection Report Generator</title>
     <style>
         :root { --mtcc-blue: #2c3e50; --border-clr: #000; }
         body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background:#f0f2f5; margin:0; padding:20px; color: #333; }
-        .container { max-width:1100px; margin:auto; background:#fff; padding:40px; border-radius:4px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+        .container { max-width:1100px; margin:auto; background:#fff; padding:30px; border-radius:4px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
         
-        h1 { text-align:center; color: var(--mtcc-blue); text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--mtcc-blue); padding-bottom: 10px; }
-        .input-section { background: #fdfdfd; padding: 20px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 30px; }
-        .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; }
-        label { font-weight:700; font-size:0.75rem; text-transform: uppercase; color: #7f8c8d; margin-bottom: 5px; display: block; }
-        input, select, textarea { width:100%; padding:10px; border:1px solid #bdc3c7; border-radius:4px; font-size: 0.9rem; }
+        h1 { text-align:center; color: var(--mtcc-blue); text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--mtcc-blue); padding-bottom: 10px; margin-bottom: 25px;}
         
-        .task-row { display:grid; grid-template-columns:140px 140px 1fr 45px; gap:8px; margin-bottom:10px; }
+        /* Input Section UI */
+        .input-section { background: #fdfdfd; padding: 25px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight:700; font-size:0.75rem; text-transform: uppercase; color: #7f8c8d; margin-bottom: 8px; display: block; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; }
         
-        button { cursor:pointer; padding:10px; border:none; border-radius:4px; font-weight:600; }
-        .btn-add { background:#27ae60; color:#fff; }
+        .task-row { display: grid; grid-template-columns: 150px 180px 1fr 50px; gap: 12px; margin-bottom: 12px; }
+        
+        button { cursor:pointer; padding:12px; border:none; border-radius:4px; font-weight:600; }
+        .btn-add { background:#27ae60; color:#fff; margin-bottom: 20px; }
         .btn-rmv { background:#c0392b; color:#fff; }
-        .btn-gen { background:var(--mtcc-blue); color:#fff; width:100%; margin-top:25px; font-size:1.1rem; padding: 15px; }
-        .btn-print { background:#8e44ad; color:#fff; width:100%; margin-top:15px; font-size:1.1rem; padding: 15px; display:none; }
+        .btn-gen { background:var(--mtcc-blue); color:#fff; width:100%; margin-top:25px; font-size:1.1rem; padding: 18px; }
+        .btn-print { background:#8e44ad; color:#fff; width:100%; margin-top:15px; font-size:1.1rem; padding: 18px; display:none; }
         
         /* Report Layout */
-        #report-area { display:none; margin-top: 20px; padding: 0; }
-        .report-header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .report-header-table td { border: 1px solid var(--border-clr); padding: 8px; font-size: 13px; vertical-align: top; }
-        .report-title-bar { background: #333; color: #fff; padding: 8px; text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
+        #report-area { display:none; margin-top: 40px; position: relative; }
+        .report-header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; }
+        .report-header-table td { border: 1px solid var(--border-clr); padding: 10px; font-size: 13px; vertical-align: top; word-wrap: break-word; }
+        .report-title-bar { background: #333; color: #fff; padding: 10px; text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; font-size: 1.2rem; }
         
         .report-table { width:100%; border-collapse:collapse; margin-bottom:15px; }
-        .report-table th { background: #f2f2f2; border: 1px solid var(--border-clr); padding: 8px; font-size: 12px; }
-        .report-table td { border: 1px solid var(--border-clr); padding: 8px; font-size: 13px; }
+        .report-table th { background: #f2f2f2; border: 1px solid var(--border-clr); padding: 10px; font-size: 12px; text-align: left; }
+        .report-table td { border: 1px solid var(--border-clr); padding: 10px; font-size: 13px; }
 
-        .summary-box { border: 1px solid var(--border-clr); padding: 12px; min-height: 60px; font-size: 13px; line-height: 1.5; margin-bottom: 15px; white-space: pre-wrap; }
+        .summary-box { border: 1px solid var(--border-clr); padding: 15px; min-height: 80px; font-size: 13px; line-height: 1.6; margin-bottom: 15px; white-space: pre-wrap; }
 
-        /* 1:1 Square Image Gallery */
+        /* 1:1 Image Grid */
         .image-gallery { display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; }
         .gallery-unit { display: flex; flex-direction: column; }
-        
-        .image-item { 
-            border: 1px solid var(--border-clr); 
-            width: 100%; 
-            padding-top: 100%; /* Creates 1:1 Aspect Ratio */
-            position: relative; 
-            overflow: hidden; 
-            background: #eee;
-        }
-        .img-container { 
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            display:flex; align-items:center; justify-content:center; 
-        }
+        .image-item { border: 1px solid var(--border-clr); width: 100%; padding-top: 100%; position: relative; overflow: hidden; background: #eee; }
+        .img-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display:flex; align-items:center; justify-content:center; }
         .img-container img { transition: transform 0.05s ease; max-width: none; }
 
-        .fig-caption { 
-            margin-top: 5px; font-size: 12px; text-align: center; font-style: italic; 
-            border-bottom: 0.5px solid #ccc; padding-bottom: 5px; min-height: 15px;
-        }
+        .fig-caption { margin-top: 8px; font-size: 12px; text-align: center; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .image-controls { background: #fff; padding: 15px; border: 1px solid #ccc; border-top:none; display: flex; flex-direction: column; gap: 8px; font-size: 11px; margin-bottom: 30px; }
 
-        .image-controls { 
-            background: #fff; padding: 8px; border: 1px solid #ccc; border-top:none; 
-            display: flex; flex-direction: column; gap: 4px; font-size: 10px; margin-bottom: 20px;
-        }
-
+        /* PRINT SPECIFIC STYLES & PAGE NUMBERS */
         @media print {
+            @page {
+                size: A4;
+                margin: 20mm;
+            }
             body { background:#fff; padding:0; }
             .container { box-shadow:none; border:none; width:100%; max-width:100%; padding:0; }
             .input-section, h1, .btn-gen, .btn-print, .image-controls, .btn-add, .btn-rmv { display:none !important; }
-            #report-area { display:block !important; }
-            .image-item { -webkit-print-color-adjust: exact; }
-            .gallery-unit { page-break-inside: avoid; margin-bottom: 20px; }
+            #report-area { display:block !important; margin-top: 0; }
+            
+            /* Footer for Page Numbers */
+            .page-footer {
+                position: fixed;
+                bottom: 0;
+                right: 0;
+                font-size: 10px;
+                color: #555;
+            }
+            .page-footer::after {
+                /* Browser-specific counter for PDF generation */
+                content: "Page " counter(page) " of " counter(pages);
+            }
+            
+            .gallery-unit { page-break-inside: avoid; margin-bottom: 25px; }
+            .report-title-bar { -webkit-print-color-adjust: exact; background-color: #333 !important; }
         }
+
+        /* Screen Preview Page Number Placeholder */
+        .page-footer-preview { text-align: right; font-size: 12px; margin-top: 20px; font-style: italic; color: #888; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>MTCC Inspection Report Builder</h1>
+    <h1>Inspection Report Generator</h1>
 
     <div class="input-section">
         <div class="grid">
-            <div><label>Serial Number</label><input id="in-sr" placeholder="MTCC/INSP/2026/001"></div>
-            <div><label>Inspection Date</label><input type="date" id="in-date"></div>
-            <div><label>Inspection Type</label>
-                <select id="in-type"><option>Pre-Work Inspection</option><option>In-Progress Inspection</option><option>Completion Inspection</option></select>
+            <div class="input-group"><label>SR Number</label><input id="in-sr"></div>
+            <div class="input-group"><label>Date</label><input type="date" id="in-date"></div>
+            <div class="input-group"><label>Customer Type</label>
+                <select id="in-customer">
+                    <option>External Customer</option>
+                    <option>Internal Department</option>
+                    <option>Inter-Division</option>
+                </select>
             </div>
-            <div><label>Vessel / Asset Name</label><input id="in-vessel"></div>
-            <div><label>Location</label><input id="in-location" value="MTCC Shipyard, K. Thilafushi"></div>
-            <div><label>Letterhead</label><input type="file" id="in-letterhead" accept="image/*"></div>
+            <div class="input-group"><label>Inspection Type</label>
+                <select id="in-type">
+                    <option>Pre-Work Inspection</option>
+                    <option>In-Progress Inspection</option>
+                    <option>Completion Inspection</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Vessel / Asset Name</label><input id="in-vessel"></div>
+            <div class="input-group"><label>Location</label><input id="in-location" value="MTCC Shipyard, K. Thilafushi"></div>
+            <div class="input-group" style="grid-column: 1 / -1;"><label>Letterhead / Logo Banner</label><input type="file" id="in-letterhead" accept="image/*"></div>
         </div>
 
-        <h3 style="margin-top:20px; font-size: 0.9rem;">WORKSHOP TASKS</h3>
+        <h3 style="margin: 25px 0 15px; font-size: 1rem; color: var(--mtcc-blue);">WORKSHOP TASKS</h3>
         <div id="task-inputs"></div>
-        <button class="btn-add" onclick="addTask()">+ Add Row</button>
+        <button class="btn-add" onclick="addTask()">+ Add New Task Row</button>
 
-        <h3 style="margin-top:20px; font-size: 0.9rem;">FINDINGS & PHOTOS</h3>
-        <textarea id="in-summary" rows="3" placeholder="Summary of work..."></textarea>
-        <label style="margin-top:10px;">Upload Gallery Images</label>
+        <h3 style="margin: 25px 0 15px; font-size: 1rem; color: var(--mtcc-blue);">SUMMARY & PHOTOS</h3>
+        <textarea id="in-summary" rows="4" placeholder="Findings and recommendations..."></textarea>
+        
+        <label style="margin-top: 15px;">Upload Photos</label>
         <input type="file" id="in-images" multiple accept="image/*">
 
-        <button class="btn-gen" onclick="generateReport()">Generate Preview</button>
-        <button id="print-btn" class="btn-print" onclick="window.print()">Print / Save PDF</button>
+        <button class="btn-gen" onclick="generateReport()">Preview Report</button>
+        <button id="print-btn" class="btn-print" onclick="window.print()">Print / Export PDF</button>
     </div>
 
     <div id="report-area">
+        <div class="page-footer"></div> 
+
         <div class="letterhead" id="out-letterhead"></div>
-        <div class="report-title-bar">Technical Inspection Report</div>
+        <div class="report-title-bar">Inspection Report</div>
 
         <table class="report-header-table">
             <tr>
-                <td width="33%"><b>SR No:</b><br><span id="out-sr"></span></td>
-                <td width="33%"><b>Date:</b><br><span id="out-date"></span></td>
-                <td width="34%"><b>Type:</b><br><span id="out-type"></span></td>
+                <td width="25%"><b>SR Number:</b><br><span id="out-sr"></span></td>
+                <td width="25%"><b>Date:</b><br><span id="out-date"></span></td>
+                <td width="25%"><b>Customer Type:</b><br><span id="out-customer"></span></td>
+                <td width="25%"><b>Inspection Type:</b><br><span id="out-type"></span></td>
             </tr>
             <tr>
-                <td colspan="2"><b>Vessel / Asset:</b><br><span id="out-vessel"></span></td>
-                <td><b>Location:</b><br><span id="out-location"></span></td>
+                <td colspan="2"><b>Vessel / Asset Name:</b><br><span id="out-vessel"></span></td>
+                <td colspan="2"><b>Location:</b><br><span id="out-location"></span></td>
             </tr>
         </table>
 
         <table class="report-table">
             <thead>
-                <tr><th width="40">No</th><th width="120">Workshop</th><th width="120">Area</th><th>Task Description</th></tr>
+                <tr><th width="40">No</th><th width="140">Workshop</th><th width="160">Specific Area</th><th>Inspection Details</th></tr>
             </thead>
             <tbody id="out-tasks"></tbody>
         </table>
 
-        <div style="font-weight: bold; margin-bottom: 5px; font-size: 12px;">SUMMARY & FINDINGS:</div>
+        <div style="font-weight: bold; margin-bottom: 5px; font-size: 12px; text-transform: uppercase;">Summary of Findings:</div>
         <div class="summary-box" id="out-summary"></div>
 
-        <div style="font-weight: bold; margin-bottom: 10px; font-size: 12px;">PHOTOGRAPHIC EVIDENCE:</div>
+        <div style="font-weight: bold; margin-bottom: 10px; font-size: 12px; text-transform: uppercase;">Photographic Evidence:</div>
         <div class="image-gallery" id="out-images"></div>
+        
+        <div class="page-footer-preview">(Page numbers will appear automatically on the printed PDF)</div>
     </div>
 </div>
 
@@ -144,7 +168,7 @@
         div.innerHTML = `
             <select class="t-ws">${workshops.map(w => `<option>${w}</option>`).join("")}</select>
             <input class="t-loc" placeholder="Area">
-            <input class="t-det" placeholder="Description">
+            <input class="t-det" placeholder="Details">
             <button class="btn-rmv" onclick="this.parentElement.remove()">✕</button>
         `;
         document.getElementById("task-inputs").appendChild(div);
@@ -157,14 +181,12 @@
         const yPos = document.getElementById('ypos-' + id).value;
         const xPos = document.getElementById('xpos-' + id).value;
         img.style.transform = `scale(${zoom}) translate(${xPos}px, ${yPos}px)`;
-        
-        // Sync Caption
-        const capIn = document.getElementById('cap-in-' + id).value;
-        document.getElementById('cap-out-' + id).innerText = capIn;
+        const capValue = document.getElementById('cap-in-' + id).value;
+        document.getElementById('cap-out-' + id).innerText = capValue ? "Fig: " + capValue : "Figure " + (id + 1);
     }
 
     function generateReport() {
-        ["sr", "date", "vessel", "location", "type"].forEach(f => {
+        ["sr", "date", "vessel", "location", "type", "customer"].forEach(f => {
             document.getElementById("out-" + f).innerText = document.getElementById("in-" + f).value;
         });
         document.getElementById("out-summary").innerText = document.getElementById("in-summary").value;
@@ -180,7 +202,7 @@
         const lhFile = document.getElementById("in-letterhead").files[0];
         if (lhFile) {
             const reader = new FileReader();
-            reader.onload = e => document.getElementById("out-letterhead").innerHTML = `<img src="${e.target.result}" style="width:100%; max-height:100px; object-fit:contain; margin-bottom:10px;">`;
+            reader.onload = e => document.getElementById("out-letterhead").innerHTML = `<img src="${e.target.result}" style="width:100%; max-height:115px; object-fit:contain; margin-bottom:15px;">`;
             reader.readAsDataURL(lhFile);
         }
 
@@ -195,16 +217,16 @@
                 wrapper.className = "gallery-unit";
                 wrapper.innerHTML = `
                     <div class="image-item">
-                        <div class="img-container">
-                            <img src="${e.target.result}" id="img-obj-${index}" style="width:100%;">
-                        </div>
+                        <div class="img-container"><img src="${e.target.result}" id="img-obj-${index}" style="width:100%;"></div>
                     </div>
                     <div id="cap-out-${index}" class="fig-caption">Figure ${index+1}</div>
                     <div class="image-controls">
-                        <input type="text" id="cap-in-${index}" placeholder="Figure details (e.g. Propeller damage)" oninput="updateImgStyle(${index})">
-                        <label>Zoom <input type="range" id="zoom-${index}" min="0.5" max="4" step="0.1" value="1" oninput="updateImgStyle(${index})"></label>
-                        <label>Nudge Y <input type="range" id="ypos-${index}" min="-200" max="200" value="0" oninput="updateImgStyle(${index})"></label>
-                        <label>Nudge X <input type="range" id="xpos-${index}" min="-200" max="200" value="0" oninput="updateImgStyle(${index})"></label>
+                        <label>Caption:</label><input type="text" id="cap-in-${index}" oninput="updateImgStyle(${index})">
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                            <label>Zoom<input type="range" id="zoom-${index}" min="0.5" max="4" step="0.1" value="1" oninput="updateImgStyle(${index})"></label>
+                            <label>X<input type="range" id="xpos-${index}" min="-200" max="200" value="0" oninput="updateImgStyle(${index})"></label>
+                            <label>Y<input type="range" id="ypos-${index}" min="-200" max="200" value="0" oninput="updateImgStyle(${index})"></label>
+                        </div>
                     </div>
                 `;
                 gallery.appendChild(wrapper);
@@ -214,6 +236,7 @@
 
         document.getElementById("report-area").style.display = "block";
         document.getElementById("print-btn").style.display = "block";
+        setTimeout(() => document.getElementById("report-area").scrollIntoView({ behavior: 'smooth' }), 300);
     }
 </script>
 
